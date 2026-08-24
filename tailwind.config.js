@@ -72,25 +72,28 @@ export default {
       },
       fontFamily: {
         sans: [
-          "Inter",
-          "-apple-system",
-          "BlinkMacSystemFont",
-          "Segoe UI",
           "Roboto",
-          "Helvetica Neue",
+          "Noto Sans",
+          "Segoe UI",
           "Arial",
+          "sans-serif",
+        ],
+        hindi: [
+          "Noto Sans Devanagari",
+          "Roboto",
           "sans-serif",
         ],
       },
       fontSize: {
-        xs: ["0.75rem", { lineHeight: "1rem" }],
-        sm: ["0.8125rem", { lineHeight: "1.25rem" }],
-        base: ["0.875rem", { lineHeight: "1.375rem" }],
-        md: ["0.9375rem", { lineHeight: "1.5rem" }],
-        lg: ["1rem", { lineHeight: "1.5rem" }],
-        xl: ["1.125rem", { lineHeight: "1.625rem" }],
-        "2xl": ["1.375rem", { lineHeight: "1.875rem" }],
-        "3xl": ["1.75rem", { lineHeight: "2.125rem" }],
+        xs: ["0.75rem", { lineHeight: "1.125rem" }],      /* 12px */
+        sm: ["0.875rem", { lineHeight: "1.25rem" }],     /* 14px */
+        base: ["1rem", { lineHeight: "1.5rem" }],        /* 16px */
+        md: ["1.125rem", { lineHeight: "1.625rem" }],    /* 18px */
+        lg: ["1.25rem", { lineHeight: "1.75rem" }],      /* 20px */
+        xl: ["1.5rem", { lineHeight: "1.875rem" }],      /* 24px */
+        "2xl": ["1.75rem", { lineHeight: "2.125rem" }],  /* 28px */
+        "3xl": ["2.125rem", { lineHeight: "2.5rem" }],   /* 34px */
+        "4xl": ["2.625rem", { lineHeight: "3rem" }],     /* 42px */
       },
       boxShadow: {
         card: "0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04)",

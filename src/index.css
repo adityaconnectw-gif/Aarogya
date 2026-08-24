@@ -4,9 +4,12 @@
 
 @layer base {
   :root {
-    /* NIH (National Institutes of Health) Official Institutional Palette */
+    /* Typography Font Tokens */
+    --font-primary: "Roboto", "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    
+    /* Institutional Healthcare Palette */
     --background: 0 0% 100%;
-    --foreground: 220 25% 15%;
+    --foreground: 220 25% 15%; /* #1c2434 / #222222 */
     
     --surface: 0 0% 100%;
     --surface-alt: 210 20% 97%;
@@ -17,13 +20,13 @@
     --popover: 0 0% 100%;
     --popover-foreground: 220 25% 15%;
 
-    /* NIH Classic Royal Blue */
-    --primary: 209 100% 26%; /* #004b87 - NIH Royal Deep Blue */
+    /* Official Deep Blue */
+    --primary: 209 100% 26%; /* #004b87 */
     --primary-hover: 209 100% 21%;
     --primary-foreground: 0 0% 100%;
     --primary-muted: 209 70% 95%;
 
-    /* NIH Secondary Cerulean & Accent */
+    /* Secondary Cerulean & Accent */
     --secondary: 204 85% 38%; /* #0c6ba8 */
     --secondary-foreground: 0 0% 100%;
     --secondary-muted: 204 60% 95%;
@@ -31,7 +34,7 @@
     --muted: 210 15% 92%;
     --muted-foreground: 215 15% 40%;
 
-    /* NIH Semantic Alert & Tag Colors */
+    /* Semantic Alert & Tag Colors */
     --success: 142 65% 30%;
     --success-foreground: 0 0% 100%;
     --success-muted: 142 50% 94%;
@@ -52,7 +55,7 @@
     --input: 215 18% 86%;
     --ring: 209 100% 26%;
 
-    --radius: 0.125rem; /* Clean 2px NIH style crisp borders */
+    --radius: 0.25rem; /* Clean institutional borders */
   }
 
   .dark {
@@ -101,37 +104,139 @@
   * {
     @apply border-border;
   }
-  body {
-    @apply bg-background text-foreground font-sans antialiased;
-  }
   
-  h1, h2, h3, h4, h5, h6 {
-    @apply tracking-tight text-foreground font-semibold;
+  html, body {
+    font-family: var(--font-primary);
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
-  /* NIH Editorial Serif Headings for Section Titles */
-  .nih-serif-title {
-    font-family: Georgia, Cambria, "Times New Roman", Times, serif;
+  /* Typography Hierarchy - Indian Government / Institutional Portal Standard */
+
+  /* Major Page Headings (38-44px desktop / 28-34px mobile) */
+  h1, .heading-major {
+    font-family: var(--font-primary);
+    font-size: clamp(1.75rem, 4vw, 2.5rem); /* 28px - 40px */
+    font-weight: 700;
+    line-height: 1.2;
+    color: hsl(var(--foreground));
+    letter-spacing: -0.01em;
+  }
+
+  /* Secondary Section Headings (26-30px desktop / 22-26px mobile) */
+  h2, .heading-section {
+    font-family: var(--font-primary);
+    font-size: clamp(1.375rem, 2.5vw, 1.75rem); /* 22px - 28px */
     font-weight: 600;
+    line-height: 1.3;
+    color: hsl(var(--foreground));
+    letter-spacing: -0.005em;
+  }
+
+  /* Card Headings (20-25px desktop / 18-21px mobile) */
+  h3, .heading-card {
+    font-family: var(--font-primary);
+    font-size: clamp(1.125rem, 2vw, 1.375rem); /* 18px - 22px */
+    font-weight: 600;
+    line-height: 1.35;
+    color: hsl(var(--foreground));
+  }
+
+  /* Subheadings / Subsection titles */
+  h4 {
+    font-family: var(--font-primary);
+    font-size: 1.125rem; /* 18px */
+    font-weight: 600;
+    line-height: 1.4;
+    color: hsl(var(--foreground));
+  }
+
+  /* Normal Body Text (16-18px desktop / 15-16px mobile) */
+  p, .body-text {
+    font-family: var(--font-primary);
+    font-size: 0.9375rem; /* 15px-16px */
+    font-weight: 400;
+    line-height: 1.6;
+    color: #333333;
+  }
+  .dark p, .dark .body-text {
+    color: #d1d5db;
+  }
+
+  /* Secondary / Supporting Text (14-16px) */
+  .text-secondary, small {
+    font-family: var(--font-primary);
+    font-size: 0.875rem; /* 14px */
+    font-weight: 400;
+    line-height: 1.45;
+    color: #555555;
+  }
+  .dark .text-secondary {
+    color: #9ca3af;
+  }
+
+  /* Navigation Links (15-17px) */
+  .nav-link {
+    font-family: var(--font-primary);
+    font-size: 0.9375rem; /* 15px */
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  /* Buttons (15-17px, Weight 500-600) */
+  button, .btn {
+    font-family: var(--font-primary);
+    font-size: 0.9375rem; /* 15px */
+    font-weight: 500;
+    line-height: 1.25;
+  }
+
+  /* Labels & Status Badges (13-15px) */
+  label {
+    font-family: var(--font-primary);
+    font-size: 0.875rem; /* 14px */
+    font-weight: 500;
+  }
+
+  /* Statistics Numbers (24-30px bold) */
+  .stat-number {
+    font-family: var(--font-primary);
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    font-weight: 700;
+    line-height: 1.15;
+  }
+  .stat-label {
+    font-family: var(--font-primary);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+
+  /* Standardized institutional title class */
+  .nih-serif-title {
+    font-family: var(--font-primary);
+    font-weight: 700;
+    letter-spacing: -0.01em;
   }
 }
 
-/* NIH Blue Top Navbar */
+/* Institutional Navigation & Alert Bars */
 .nih-nav-bar {
   background-color: #004b87;
   color: #ffffff;
+  font-family: var(--font-primary);
 }
 
-/* NIH Banner Alert Dark Gray */
 .nih-alert-banner {
   background-color: #4a4a4a;
   color: #ffffff;
+  font-family: var(--font-primary);
 }
 
-/* NIH Footer Deep Blue */
 .nih-footer-blue {
   background-color: #003366;
   color: #ffffff;
+  font-family: var(--font-primary);
 }
 
 /* Scroll to top button */
