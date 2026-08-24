@@ -1,0 +1,152 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* NIH (National Institutes of Health) Official Institutional Palette */
+    --background: 0 0% 100%;
+    --foreground: 220 25% 15%;
+    
+    --surface: 0 0% 100%;
+    --surface-alt: 210 20% 97%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 25% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 25% 15%;
+
+    /* NIH Classic Royal Blue */
+    --primary: 209 100% 26%; /* #004b87 - NIH Royal Deep Blue */
+    --primary-hover: 209 100% 21%;
+    --primary-foreground: 0 0% 100%;
+    --primary-muted: 209 70% 95%;
+
+    /* NIH Secondary Cerulean & Accent */
+    --secondary: 204 85% 38%; /* #0c6ba8 */
+    --secondary-foreground: 0 0% 100%;
+    --secondary-muted: 204 60% 95%;
+
+    --muted: 210 15% 92%;
+    --muted-foreground: 215 15% 40%;
+
+    /* NIH Semantic Alert & Tag Colors */
+    --success: 142 65% 30%;
+    --success-foreground: 0 0% 100%;
+    --success-muted: 142 50% 94%;
+
+    --warning: 38 92% 44%;
+    --warning-foreground: 0 0% 100%;
+    --warning-muted: 38 90% 94%;
+
+    --danger: 0 72% 45%;
+    --danger-foreground: 0 0% 100%;
+    --danger-muted: 0 75% 95%;
+
+    --info: 209 100% 32%;
+    --info-foreground: 0 0% 100%;
+    --info-muted: 209 60% 95%;
+
+    --border: 215 18% 86%;
+    --input: 215 18% 86%;
+    --ring: 209 100% 26%;
+
+    --radius: 0.125rem; /* Clean 2px NIH style crisp borders */
+  }
+
+  .dark {
+    --background: 220 30% 9%;
+    --foreground: 210 30% 96%;
+
+    --surface: 220 30% 12%;
+    --surface-alt: 220 30% 15%;
+
+    --card: 220 30% 12%;
+    --card-foreground: 210 30% 96%;
+
+    --popover: 220 30% 12%;
+    --popover-foreground: 210 30% 96%;
+
+    --primary: 209 85% 48%;
+    --primary-hover: 209 85% 42%;
+    --primary-foreground: 0 0% 100%;
+    --primary-muted: 209 50% 18%;
+
+    --secondary: 204 75% 55%;
+    --secondary-foreground: 0 0% 100%;
+    --secondary-muted: 204 50% 18%;
+
+    --muted: 217 25% 20%;
+    --muted-foreground: 215 20% 65%;
+
+    --border: 217 25% 22%;
+    --input: 217 25% 22%;
+    --ring: 209 85% 48%;
+  }
+
+  /* Accessibility text scale overrides */
+  html.font-size-sm {
+    font-size: 14px;
+  }
+  html.font-size-md {
+    font-size: 16px;
+  }
+  html.font-size-lg {
+    font-size: 18px;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight text-foreground font-semibold;
+  }
+
+  /* NIH Editorial Serif Headings for Section Titles */
+  .nih-serif-title {
+    font-family: Georgia, Cambria, "Times New Roman", Times, serif;
+    font-weight: 600;
+  }
+}
+
+/* NIH Blue Top Navbar */
+.nih-nav-bar {
+  background-color: #004b87;
+  color: #ffffff;
+}
+
+/* NIH Banner Alert Dark Gray */
+.nih-alert-banner {
+  background-color: #4a4a4a;
+  color: #ffffff;
+}
+
+/* NIH Footer Deep Blue */
+.nih-footer-blue {
+  background-color: #003366;
+  color: #ffffff;
+}
+
+/* Scroll to top button */
+.nih-scroll-top {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background-color: #555555;
+  color: #ffffff;
+  border-radius: 9999px;
+  padding: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  transition: all 0.2s ease;
+  z-index: 40;
+}
+.nih-scroll-top:hover {
+  background-color: #004b87;
+}
