@@ -22,7 +22,6 @@ import { BhashiniLanguageSelector } from './BhashiniLanguageSelector';
 export const InstitutionalTopBar: React.FC = () => {
   const { darkMode, toggleDarkMode, resetDemoData } = useApp();
   const [fontSize, setFontSize] = useState<'sm' | 'md' | 'lg'>('md');
-  const [showAlertBanner, setShowAlertBanner] = useState(true);
 
   useEffect(() => {
     document.documentElement.classList.remove('font-size-sm', 'font-size-md', 'font-size-lg');
@@ -75,39 +74,7 @@ export const InstitutionalTopBar: React.FC = () => {
         </div>
       </div>
 
-      {/* 2. NIH Style Dark Gray Announcement Banner (Closable) */}
-      {showAlertBanner && (
-        <div className="nih-alert-banner py-5 px-4 sm:px-8 relative border-b border-black/20">
-          <div className="max-w-5xl mx-auto bg-white text-[#222222] p-5 rounded-xs shadow-md space-y-3 relative">
-            <button
-              onClick={() => setShowAlertBanner(false)}
-              className="absolute top-3 right-3 text-muted-foreground hover:text-foreground p-1"
-              aria-label="Close banner"
-            >
-              <X className="h-4 w-4" />
-            </button>
-
-            <div className="space-y-1 pr-6">
-              <h2 className="text-base sm:text-lg font-bold text-[#111111] tracking-tight">
-                Aarogyam Unified Health Ecosystem Is Now Live
-              </h2>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Connecting citizens, doctors, and hospitals onto a single longitudinal health timeline with instant clinical case-taking, vaccine trackers, and sovereign privacy controls.
-              </p>
-            </div>
-
-            <div>
-              <Link to="/login">
-                <button className="px-4 py-2 bg-[#004b87] hover:bg-[#003d6e] text-white font-semibold text-xs rounded-xs shadow-xs transition-colors">
-                  Sign In to Patient & Clinical Records Portal
-                </button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 3. NIH Brand Header (Logo on Left, Search on Right) */}
+      {/* 2. NIH Brand Header (Logo on Left, Search on Right) */}
       <div className="bg-white border-b border-border py-4 px-3 sm:px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
           {/* Logo Badge (Exact NIH Header Geometry) */}
