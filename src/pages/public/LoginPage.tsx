@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/common/Toast';
 import { UserRole } from '../../types';
 import { BhashiniLanguageSelector, LanguageOption } from '../../components/common/BhashiniLanguageSelector';
+import { AarogyamLogo } from '../../components/common/AarogyamLogo';
 
 export const LoginPage: React.FC = () => {
   const [selectedRole, setSelectedRole] = useState<UserRole>('patient');
@@ -62,16 +63,16 @@ export const LoginPage: React.FC = () => {
     <div className="min-h-[calc(100vh-180px)] flex items-center justify-center px-4 py-12 bg-background">
       <div className="w-full max-w-md space-y-6">
         {/* Header Title */}
-        <div className="text-center space-y-1">
-          <div className="inline-flex items-center justify-center h-10 w-10 rounded-md bg-primary text-white font-bold text-sm mb-2 shadow-xs">
-            आ
+        <div className="text-center space-y-2 flex flex-col items-center">
+          <AarogyamLogo size="xl" className="mb-1" />
+          <div>
+            <h1 className="text-xl font-bold text-foreground tracking-tight">
+              Institutional Health Access Portal
+            </h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Sign in to access your longitudinal health records and clinical ecosystem
+            </p>
           </div>
-          <h1 className="text-xl font-bold text-foreground tracking-tight">
-            Institutional Health Access Portal
-          </h1>
-          <p className="text-xs text-muted-foreground">
-            Sign in to access your longitudinal health records and clinical ecosystem
-          </p>
         </div>
 
         {/* Top Header & Role Picker Strip */}

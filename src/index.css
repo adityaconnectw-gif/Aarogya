@@ -6,11 +6,12 @@
   :root {
     /* Typography Font Tokens */
     --font-primary: "Roboto", "Noto Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-    
+
     /* Institutional Healthcare Palette */
     --background: 0 0% 100%;
-    --foreground: 220 25% 15%; /* #1c2434 / #222222 */
-    
+    --foreground: 220 25% 15%;
+    /* #1c2434 / #222222 */
+
     --surface: 0 0% 100%;
     --surface-alt: 210 20% 97%;
 
@@ -21,13 +22,15 @@
     --popover-foreground: 220 25% 15%;
 
     /* Official Deep Blue */
-    --primary: 209 100% 26%; /* #004b87 */
+    --primary: 209 100% 26%;
+    /* #004b87 */
     --primary-hover: 209 100% 21%;
     --primary-foreground: 0 0% 100%;
     --primary-muted: 209 70% 95%;
 
     /* Secondary Cerulean & Accent */
-    --secondary: 204 85% 38%; /* #0c6ba8 */
+    --secondary: 204 85% 38%;
+    /* #0c6ba8 */
     --secondary-foreground: 0 0% 100%;
     --secondary-muted: 204 60% 95%;
 
@@ -55,7 +58,8 @@
     --input: 215 18% 86%;
     --ring: 209 100% 26%;
 
-    --radius: 0.25rem; /* Clean institutional borders */
+    --radius: 0.25rem;
+    /* Clean institutional borders */
   }
 
   .dark {
@@ -92,9 +96,11 @@
   html.font-size-sm {
     font-size: 14px;
   }
+
   html.font-size-md {
     font-size: 16px;
   }
+
   html.font-size-lg {
     font-size: 18px;
   }
@@ -104,8 +110,9 @@
   * {
     @apply border-border;
   }
-  
-  html, body {
+
+  html,
+  body {
     font-family: var(--font-primary);
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
@@ -114,9 +121,11 @@
   /* Typography Hierarchy - Indian Government / Institutional Portal Standard */
 
   /* Major Page Headings (38-44px desktop / 28-34px mobile) */
-  h1, .heading-major {
+  h1,
+  .heading-major {
     font-family: var(--font-primary);
-    font-size: clamp(1.75rem, 4vw, 2.5rem); /* 28px - 40px */
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    /* 28px - 40px */
     font-weight: 700;
     line-height: 1.2;
     color: hsl(var(--foreground));
@@ -124,9 +133,11 @@
   }
 
   /* Secondary Section Headings (26-30px desktop / 22-26px mobile) */
-  h2, .heading-section {
+  h2,
+  .heading-section {
     font-family: var(--font-primary);
-    font-size: clamp(1.375rem, 2.5vw, 1.75rem); /* 22px - 28px */
+    font-size: clamp(1.375rem, 2.5vw, 1.75rem);
+    /* 22px - 28px */
     font-weight: 600;
     line-height: 1.3;
     color: hsl(var(--foreground));
@@ -134,9 +145,11 @@
   }
 
   /* Card Headings (20-25px desktop / 18-21px mobile) */
-  h3, .heading-card {
+  h3,
+  .heading-card {
     font-family: var(--font-primary);
-    font-size: clamp(1.125rem, 2vw, 1.375rem); /* 18px - 22px */
+    font-size: clamp(1.125rem, 2vw, 1.375rem);
+    /* 18px - 22px */
     font-weight: 600;
     line-height: 1.35;
     color: hsl(var(--foreground));
@@ -145,32 +158,40 @@
   /* Subheadings / Subsection titles */
   h4 {
     font-family: var(--font-primary);
-    font-size: 1.125rem; /* 18px */
+    font-size: 1.125rem;
+    /* 18px */
     font-weight: 600;
     line-height: 1.4;
     color: hsl(var(--foreground));
   }
 
   /* Normal Body Text (16-18px desktop / 15-16px mobile) */
-  p, .body-text {
+  p,
+  .body-text {
     font-family: var(--font-primary);
-    font-size: 0.9375rem; /* 15px-16px */
+    font-size: 0.9375rem;
+    /* 15px-16px */
     font-weight: 400;
     line-height: 1.6;
     color: #333333;
   }
-  .dark p, .dark .body-text {
+
+  .dark p,
+  .dark .body-text {
     color: #d1d5db;
   }
 
   /* Secondary / Supporting Text (14-16px) */
-  .text-secondary, small {
+  .text-secondary,
+  small {
     font-family: var(--font-primary);
-    font-size: 0.875rem; /* 14px */
+    font-size: 0.875rem;
+    /* 14px */
     font-weight: 400;
     line-height: 1.45;
     color: #555555;
   }
+
   .dark .text-secondary {
     color: #9ca3af;
   }
@@ -178,15 +199,18 @@
   /* Navigation Links (15-17px) */
   .nav-link {
     font-family: var(--font-primary);
-    font-size: 0.9375rem; /* 15px */
+    font-size: 0.9375rem;
+    /* 15px */
     font-weight: 500;
     line-height: 1.4;
   }
 
   /* Buttons (15-17px, Weight 500-600) */
-  button, .btn {
+  button,
+  .btn {
     font-family: var(--font-primary);
-    font-size: 0.9375rem; /* 15px */
+    font-size: 0.9375rem;
+    /* 15px */
     font-weight: 500;
     line-height: 1.25;
   }
@@ -194,7 +218,8 @@
   /* Labels & Status Badges (13-15px) */
   label {
     font-family: var(--font-primary);
-    font-size: 0.875rem; /* 14px */
+    font-size: 0.875rem;
+    /* 14px */
     font-weight: 500;
   }
 
@@ -205,6 +230,7 @@
     font-weight: 700;
     line-height: 1.15;
   }
+
   .stat-label {
     font-family: var(--font-primary);
     font-size: 0.8125rem;
@@ -252,6 +278,7 @@
   transition: all 0.2s ease;
   z-index: 40;
 }
+
 .nih-scroll-top:hover {
   background-color: #004b87;
 }

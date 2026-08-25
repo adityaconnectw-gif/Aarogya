@@ -4,6 +4,7 @@ import { Mail, ArrowLeft, CheckCircle2, KeyRound } from 'lucide-react';
 import { Button } from '../../components/common/Button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/common/Card';
 import { useToast } from '../../components/common/Toast';
+import { AarogyamLogo } from '../../components/common/AarogyamLogo';
 
 export const ForgotPasswordPage: React.FC = () => {
   const [emailOrPhone, setEmailOrPhone] = useState('aditya@demo.health');
@@ -28,13 +29,16 @@ export const ForgotPasswordPage: React.FC = () => {
   return (
     <div className="min-h-[calc(100vh-180px)] flex items-center justify-center px-4 py-12 bg-background">
       <div className="w-full max-w-md space-y-6">
-        <div className="text-center space-y-1">
-          <h1 className="text-xl font-bold text-foreground tracking-tight">
-            Account Recovery & Reset
-          </h1>
-          <p className="text-xs text-muted-foreground">
-            Recover access using your registered health identifier or mobile OTP
-          </p>
+        <div className="text-center space-y-2 flex flex-col items-center">
+          <AarogyamLogo size="xl" className="mb-1" />
+          <div>
+            <h1 className="text-xl font-bold text-foreground tracking-tight">
+              Account Recovery & Reset
+            </h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Recover access using your registered health identifier or mobile OTP
+            </p>
+          </div>
         </div>
 
         <Card>

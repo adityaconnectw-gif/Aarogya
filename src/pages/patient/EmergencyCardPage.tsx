@@ -19,6 +19,7 @@ import { Modal } from '../../components/common/Modal';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../components/common/Toast';
 import { formatDate } from '../../utils/formatters';
+import { AarogyamLogo } from '../../components/common/AarogyamLogo';
 
 export const EmergencyCardPage: React.FC = () => {
   const { emergencyProfile, patient, triggerEmergencyAccess } = useApp();
@@ -87,12 +88,10 @@ export const EmergencyCardPage: React.FC = () => {
         {/* Card Top Red Header */}
         <div className="bg-rose-700 text-white p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-white text-rose-700 flex items-center justify-center font-bold text-lg">
-              +
-            </div>
+            <AarogyamLogo size="md" imgClassName="ring-2 ring-white/60 bg-white" />
             <div>
               <span className="text-[11px] uppercase tracking-widest font-semibold opacity-90 block">
-                NATIONAL HEALTH NETWORK • EMERGENCY MEDICAL CARD
+                AAROGYAM NATIONAL HEALTH NETWORK • EMERGENCY MEDICAL CARD
               </span>
               <h2 className="text-lg font-bold tracking-tight">{emergencyProfile.name}</h2>
             </div>

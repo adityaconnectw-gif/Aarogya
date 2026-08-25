@@ -20,6 +20,7 @@ import { InstitutionalTopBar } from '../common/InstitutionalHeader';
 import { Button } from '../common/Button';
 import { useAuth } from '../../context/AuthContext';
 import { BhashiniLanguageSelector } from '../common/BhashiniLanguageSelector';
+import { AarogyamLogo } from '../common/AarogyamLogo';
 
 export const PublicLayout: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -64,9 +65,8 @@ export const PublicLayout: React.FC = () => {
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`px-3.5 py-3 hover:bg-black/15 transition-colors flex items-center gap-1 text-white text-xs ${
-                    isActive ? 'bg-black/20 font-semibold' : ''
-                  }`}
+                  className={`px-3.5 py-3 hover:bg-black/15 transition-colors flex items-center gap-1 text-white text-xs ${isActive ? 'bg-black/20 font-semibold' : ''
+                    }`}
                 >
                   <span>{link.label}</span>
                   {link.hasDropdown && <ChevronDown className="h-3 w-3 text-white/70" />}
@@ -86,8 +86,8 @@ export const PublicLayout: React.FC = () => {
                     user?.role === 'patient'
                       ? '/patient/dashboard'
                       : user?.role === 'doctor'
-                      ? '/doctor/dashboard'
-                      : '/admin/dashboard'
+                        ? '/doctor/dashboard'
+                        : '/admin/dashboard'
                   }
                   className="px-2.5 py-1 rounded-xs bg-white/20 hover:bg-white/30 text-white font-semibold"
                 >
@@ -116,7 +116,7 @@ export const PublicLayout: React.FC = () => {
 
       {/* Mobile Drawer */}
       <div className="md:hidden bg-[#004b87] text-white px-4 py-2 flex items-center justify-between">
-        <span className="font-bold text-xs uppercase tracking-wider">Aarogyam Menu</span>
+        <AarogyamLogo size="sm" showText title="Aarogyam" theme="light" />
         <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-1">
           {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
@@ -204,13 +204,14 @@ export const PublicLayout: React.FC = () => {
         {/* Tier 3: Deep Blue NIH Official Government Strip */}
         <div className="nih-footer-blue py-6 px-4 sm:px-6 text-white text-xs">
           <div className="max-w-7xl mx-auto space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="h-8 px-2.5 rounded bg-white/10 border border-white/20 text-white font-extrabold flex items-center justify-center">
-                Aarogyam
-              </div>
+            <div className="flex items-center gap-3.5">
+              <AarogyamLogo size="md" imgClassName="ring-2 ring-white/30" />
               <div className="text-[11px] text-white/90">
-                <span>www.aarogyam.gov.in</span>
-                <span className="block text-white/70">An official digital health mission of the Ministry of Health & Family Welfare</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-sm text-white">Aarogyam</span>
+                  <span className="font-mono text-white/70">www.aarogyam.gov.in</span>
+                </div>
+                <span className="block text-white/75">Health का Digital साथी • An official digital health mission of the Ministry of Health & Family Welfare</span>
               </div>
             </div>
 

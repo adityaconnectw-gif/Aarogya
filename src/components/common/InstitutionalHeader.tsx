@@ -18,6 +18,7 @@ import { useApp } from '../../context/AppContext';
 import { UserRole } from '../../types';
 
 import { BhashiniLanguageSelector } from './BhashiniLanguageSelector';
+import { AarogyamLogo } from './AarogyamLogo';
 
 export const InstitutionalTopBar: React.FC = () => {
   const { darkMode, toggleDarkMode, resetDemoData } = useApp();
@@ -46,7 +47,7 @@ export const InstitutionalTopBar: React.FC = () => {
             <Link to="/about" className="hover:text-primary hidden sm:inline text-[11px]">
               Virtual Tour
             </Link>
-            
+
             {/* Bhashini Language Dropdown in Top Bar */}
             <BhashiniLanguageSelector compact={true} />
 
@@ -77,17 +78,20 @@ export const InstitutionalTopBar: React.FC = () => {
       {/* 2. NIH Brand Header (Logo on Left, Search on Right) */}
       <div className="bg-white border-b border-border py-4 px-3 sm:px-6">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
-          {/* Logo Badge (Exact NIH Header Geometry) */}
-          <Link to="/" className="flex items-center gap-3">
-            <div className="h-10 px-3 rounded-xs bg-[#004b87] text-white flex items-center justify-center font-extrabold text-lg tracking-wider">
-              Aarogyam
-            </div>
+          {/* Logo Badge (Official Aarogyam Emblem + Institutional Geometry) */}
+          <Link to="/" className="flex items-center gap-3.5 group">
+            <AarogyamLogo size="lg" imgClassName="ring-2 ring-[#004b87]/15 group-hover:scale-105 transition-transform" />
             <div className="border-l border-border pl-3 flex flex-col">
-              <span className="text-base font-bold text-[#222222] tracking-tight">
-                National Unified Patient Health Ecosystem
-              </span>
-              <span className="text-[11px] text-muted-foreground italic">
-                Turning Discovery Into Health • One Patient. One Health Timeline.
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-black text-[#004b87] tracking-tight">
+                  Aarogyam
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                  National Health Network
+                </span>
+              </div>
+              <span className="text-[11px] text-muted-foreground font-medium">
+                Health का Digital साथी • One Patient. One Health Timeline.
               </span>
             </div>
           </Link>

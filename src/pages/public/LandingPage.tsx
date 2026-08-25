@@ -27,6 +27,7 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/common/Toast';
 import { BhashiniLanguageSelector, LanguageOption } from '../../components/common/BhashiniLanguageSelector';
+import { AarogyamLogo } from '../../components/common/AarogyamLogo';
 
 export const LandingPage: React.FC = () => {
   const { login, switchRole, isAuthenticated, user } = useAuth();
@@ -105,13 +106,21 @@ export const LandingPage: React.FC = () => {
         <div className="relative max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           {/* Left Column: Headline & Value Proposition */}
           <div className="lg:col-span-7 space-y-4 text-white">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded-xs bg-[#005ea2] text-white">
-                NATIONAL DIGITAL HEALTH ECOSYSTEM
-              </span>
-              <span className="text-xs text-white/80 font-medium">
-                • One Patient. One Health Timeline.
-              </span>
+            <div className="flex items-center gap-3.5">
+              <AarogyamLogo size="lg" imgClassName="ring-2 ring-white/50 shadow-xl" />
+              <div className="flex flex-col gap-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase font-bold tracking-widest px-2.5 py-0.5 rounded-xs bg-[#005ea2] text-white">
+                    NATIONAL DIGITAL HEALTH ECOSYSTEM
+                  </span>
+                  <span className="text-xs text-emerald-300 font-bold hidden sm:inline">
+                    • Official Portal
+                  </span>
+                </div>
+                <span className="text-xs text-white/90 font-medium">
+                  Health का Digital साथी • One Patient. One Health Timeline.
+                </span>
+              </div>
             </div>
 
             <h1 className="nih-serif-title text-2xl sm:text-4xl lg:text-[42px] font-extrabold text-white leading-tight">

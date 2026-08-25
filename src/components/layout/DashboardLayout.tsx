@@ -35,6 +35,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { Badge } from '../common/Badge';
 import { Button } from '../common/Button';
+import { AarogyamLogo } from '../common/AarogyamLogo';
 
 export const DashboardLayout: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -196,10 +197,8 @@ export const DashboardLayout: React.FC = () => {
               {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </button>
 
-            <Link to="/" className="flex items-center gap-2">
-              <span className="h-7 w-7 rounded bg-primary text-primary-foreground font-bold flex items-center justify-center text-xs shadow-xs">
-                आ
-              </span>
+            <Link to="/" className="flex items-center gap-2.5">
+              <AarogyamLogo size="sm" />
               <div className="flex flex-col">
                 <span className="text-sm font-bold text-foreground leading-none">Aarogyam</span>
                 <span className="text-[10px] text-muted-foreground font-medium">
@@ -349,13 +348,13 @@ export const DashboardLayout: React.FC = () => {
         </div>
       </header>
 
-      {/* Main Portal Body (Sidebar + Content) */}
-      <div className="flex-1 flex max-w-7xl w-full mx-auto px-2 sm:px-6 py-4 gap-6">
-        {/* Desktop Sidebar Navigation */}
-        <aside className="hidden lg:block w-64 shrink-0">
-          <div className="sticky top-28 bg-surface rounded-md border border-border p-3 shadow-card space-y-1 max-h-[calc(100vh-140px)] overflow-y-auto">
+      {/* Main Portal Body (Sidebar flush to Left Edge + Spacious Content) */}
+      <div className="flex-1 flex w-full">
+        {/* Desktop Sidebar Navigation (0px margin from Left Edge) */}
+        <aside className="hidden lg:block w-[280px] shrink-0 border-r border-border bg-surface min-h-[calc(100vh-88px)]">
+          <div className="sticky top-28 p-3.5 space-y-1 max-h-[calc(100vh-120px)] overflow-y-auto">
             {/* User Profile Card Summary */}
-            <div className="p-2.5 mb-2 rounded bg-surface-alt/70 border border-border/80 text-xs">
+            <div className="p-3 mb-2.5 rounded bg-surface-alt/80 border border-border text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
                   {role === 'patient' ? 'Patient Card' : role === 'doctor' ? 'Practitioner' : 'Administrator'}
@@ -364,8 +363,8 @@ export const DashboardLayout: React.FC = () => {
                   Active
                 </Badge>
               </div>
-              <p className="font-semibold text-foreground mt-1 truncate">{user?.name}</p>
-              <p className="text-[11px] text-muted-foreground font-mono">
+              <p className="font-semibold text-foreground mt-1 text-sm truncate">{user?.name}</p>
+              <p className="text-[11px] text-muted-foreground font-mono mt-0.5">
                 {role === 'patient' ? `ID: ${patient.patientId} | ${patient.bloodGroup}` : user?.email}
               </p>
             </div>
@@ -413,9 +412,7 @@ export const DashboardLayout: React.FC = () => {
             <div className="fixed inset-y-0 left-0 w-72 bg-surface border-r border-border p-4 shadow-xl flex flex-col animate-slide-in-left">
               <div className="flex items-center justify-between pb-3 border-b border-border">
                 <div className="flex items-center gap-2">
-                  <span className="h-6 w-6 rounded bg-primary text-white text-xs font-bold flex items-center justify-center">
-                    आ
-                  </span>
+                  <AarogyamLogo size="xs" />
                   <span className="font-bold text-sm text-foreground">Aarogyam</span>
                 </div>
                 <button
@@ -468,8 +465,8 @@ export const DashboardLayout: React.FC = () => {
           </div>
         )}
 
-        {/* Dynamic Page Content */}
-        <main className="flex-1 min-w-0 pb-12">
+        {/* Dynamic Page Content (Spacious & Responsive) */}
+        <main className="flex-1 min-w-0 px-4 sm:px-8 py-6 pb-16">
           <Outlet />
         </main>
       </div>

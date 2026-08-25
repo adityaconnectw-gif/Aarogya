@@ -16,6 +16,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/common/Card';
 import { Badge } from '../../components/common/Badge';
 import { Button } from '../../components/common/Button';
+import { AarogyamLogo } from '../../components/common/AarogyamLogo';
 
 export const HowItWorksPage: React.FC = () => {
   const steps = [
@@ -48,7 +49,8 @@ export const HowItWorksPage: React.FC = () => {
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-8 text-xs">
       {/* Top Banner */}
-      <div className="bg-surface rounded-md border border-border p-6 shadow-xs text-center space-y-2">
+      <div className="bg-surface rounded-md border border-border p-6 shadow-xs text-center space-y-2 flex flex-col items-center">
+        <AarogyamLogo size="lg" />
         <span className="text-[11px] font-bold text-secondary uppercase tracking-wider bg-secondary/10 px-3 py-1 rounded-full inline-block">
           Simple Step-by-Step Guide
         </span>

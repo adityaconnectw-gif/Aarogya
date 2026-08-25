@@ -1,20 +1,24 @@
 import React from 'react';
 import { ShieldCheck, Layers, Award, FileCode, CheckCircle2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/common/Card';
+import { AarogyamLogo } from '../../components/common/AarogyamLogo';
 
 export const AboutPage: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-12">
-      <div className="text-left space-y-2 border-b border-border pb-6">
-        <span className="text-xs font-bold uppercase tracking-wider text-primary">
-          Smart India Hackathon Prototype
-        </span>
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
-          About Aarogyam Unified Health Ecosystem
-        </h1>
-        <p className="text-xs sm:text-sm text-muted-foreground max-w-3xl leading-relaxed">
-          Aarogyam was designed to solve the critical problem of fragmented, lost, and inaccessible healthcare data across Indian medical facilities.
-        </p>
+      <div className="border-b border-border pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+        <div className="text-left space-y-2">
+          <span className="text-xs font-bold uppercase tracking-wider text-primary">
+            Smart India Hackathon Prototype
+          </span>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">
+            About Aarogyam Unified Health Ecosystem
+          </h1>
+          <p className="text-xs sm:text-sm text-muted-foreground max-w-3xl leading-relaxed">
+            Aarogyam was designed to solve the critical problem of fragmented, lost, and inaccessible healthcare data across Indian medical facilities.
+          </p>
+        </div>
+        <AarogyamLogo size="hero" className="shrink-0" />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

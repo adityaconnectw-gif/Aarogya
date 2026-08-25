@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../components/common/Toast';
 import { BhashiniLanguageSelector, LanguageOption } from '../../components/common/BhashiniLanguageSelector';
+import { AarogyamLogo } from '../../components/common/AarogyamLogo';
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -69,16 +70,16 @@ export const RegisterPage: React.FC = () => {
   return (
     <div className="max-w-2xl mx-auto px-4 py-12">
       <div className="space-y-6">
-        <div className="text-center space-y-1">
-          <div className="inline-flex items-center justify-center h-10 w-10 rounded-md bg-primary text-white font-bold text-sm mb-2 shadow-xs">
-            आ
+        <div className="text-center space-y-2 flex flex-col items-center">
+          <AarogyamLogo size="xl" className="mb-1" />
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
+              Create Verified Patient Health ID
+            </h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-0.5">
+              Generate your unified patient identity to connect and synchronize records across healthcare providers.
+            </p>
           </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
-            Create Verified Patient Health ID
-          </h1>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            Generate your unified patient identity to connect and synchronize records across healthcare providers.
-          </p>
         </div>
 
         {/* Demo Identity Banner */}
