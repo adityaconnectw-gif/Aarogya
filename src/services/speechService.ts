@@ -1,7 +1,8 @@
 /**
  * Aarogyam AI Assistant - Browser Native Speech Service
  * 
- * Provides safe wrappers for Web Speech Recognition (STT) and Web Speech Synthesis (TTS).
+ * Provides safe wrappers for Web Speech Recognition (STT) and Web Speech Synthesis (TTS)
+ * with robust multilingual Indian BCP-47 language tag mappings and graceful fallbacks.
  */
 
 // Extend window for WebkitSpeechRecognition
@@ -10,6 +11,24 @@ declare global {
     SpeechRecognition?: any;
     webkitSpeechRecognition?: any;
   }
+}
+
+/**
+ * Maps common language names or ISO codes to standard Indian BCP-47 locale tags.
+ */
+export function getLanguageBCP47(lang: string): string {
+  const normalized = (lang || '').toLowerCase().trim();
+  if (normalized.includes('hi') || normalized.includes('hindi')) return 'hi-IN';
+  if (normalized.includes('ta') || normalized.includes('tamil')) return 'ta-IN';
+  if (normalized.includes('bn') || normalized.includes('bengali') || normalized.includes('bangla')) return 'bn-IN';
+  if (normalized.includes('te') || normalized.includes('telugu')) return 'te-IN';
+  if (normalized.includes('mr') || normalized.includes('marathi')) return 'mr-IN';
+  if (normalized.includes('gu') || normalized.includes('gujarati')) return 'gu-IN';
+  if (normalized.includes('kn') || normalized.includes('kannada')) return 'kn-IN';
+  if (normalized.includes('ml') || normalized.includes('malayalam')) return 'ml-IN';
+  if (normalized.includes('pa') || normalized.includes('punjabi')) return 'pa-IN';
+  if (normalized.includes('or') || normalized.includes('odia')) return 'or-IN';
+  return 'en-IN';
 }
 
 /**
@@ -39,7 +58,7 @@ export function startSpeechRecognition(
   language = 'en-IN'
 ): () => void {
   if (!isSpeechRecognitionSupported()) {
-    onError('Speech recognition is not supported in this browser. Please use Chrome, Edge, or a modern browser.');
+    onError('Speech recognition is not supported in this browser. Please use touch buttons or a supported browser like Chrome/Edge.');
     onEnd();
     return () => {};
   }
@@ -48,9 +67,10 @@ export function startSpeechRecognition(
     const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
     const recognition = new SpeechRecognitionClass();
 
+    const localeTag = getLanguageBCP47(language);
     recognition.continuous = false;
     recognition.interimResults = true;
-    recognition.lang = language;
+    recognition.lang = localeTag;
     recognition.maxAlternatives = 1;
 
     recognition.onresult = (event: any) => {
@@ -70,13 +90,13 @@ export function startSpeechRecognition(
     };
 
     recognition.onerror = (event: any) => {
-      let errMsg = 'Speech recognition error';
+      let errMsg = 'Speech recognition was interrupted.';
       if (event.error === 'not-allowed') {
-        errMsg = 'Microphone permission denied. Please allow microphone access in your browser.';
+        errMsg = 'Microphone access was denied. Please allow microphone permissions or use touch selection.';
       } else if (event.error === 'no-speech') {
-        errMsg = 'No speech detected. Please try again.';
+        errMsg = 'No voice input was heard. Please speak again or select an option.';
       } else if (event.error === 'network') {
-        errMsg = 'Network error occurred during speech recognition.';
+        errMsg = 'Speech service network issue. Please continue using touch options.';
       }
       onError(errMsg);
     };
@@ -95,7 +115,7 @@ export function startSpeechRecognition(
       }
     };
   } catch (err: any) {
-    onError(err.message || 'Unable to start speech recognition.');
+    onError(err.message || 'Unable to start speech input.');
     onEnd();
     return () => {};
   }
@@ -113,7 +133,7 @@ function cleanTextForSpeech(text: string): string {
 }
 
 /**
- * Speaks text using the browser's native SpeechSynthesis API.
+ * Speaks text using the browser's native SpeechSynthesis API with localized voice matching.
  */
 export function speakText(
   text: string,
@@ -129,16 +149,18 @@ export function speakText(
     const cleanedText = cleanTextForSpeech(text);
     if (!cleanedText) return;
 
+    const localeTag = getLanguageBCP47(language);
     const utterance = new SpeechSynthesisUtterance(cleanedText);
-    utterance.lang = language;
-    utterance.rate = 1.0;
+    utterance.lang = localeTag;
+    utterance.rate = 0.95; // Slightly slower for patient clarity
     utterance.pitch = 1.0;
 
-    // Pick a natural English/Indian English voice if available
+    // Pick matching voice if available
     const voices = window.speechSynthesis.getVoices();
-    const preferredVoice = voices.find(
-      (v) => (v.lang === 'en-IN' || v.lang === 'en-GB' || v.lang.startsWith('en')) && v.name.includes('Google')
-    ) || voices.find((v) => v.lang.startsWith('en'));
+    const preferredVoice =
+      voices.find((v) => v.lang === localeTag) ||
+      voices.find((v) => v.lang.startsWith(localeTag.substring(0, 2))) ||
+      voices.find((v) => v.lang.includes('IN') || v.lang.startsWith('en'));
 
     if (preferredVoice) {
       utterance.voice = preferredVoice;

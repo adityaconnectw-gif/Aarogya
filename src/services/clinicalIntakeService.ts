@@ -1,16 +1,228 @@
 /**
  * Clinical Intake Service - Question Ontologies & Clinical Logic
  * 
- * Provides guided non-chatbot clinical intake questionnaires, adaptive branching,
- * Review of Systems (ROS), AYUSH Dashavidha Pariksha, and Red-Flag Emergency detection.
+ * Provides guided clinical history questionnaires, dynamic complaint-specific
+ * adaptive branching (SOCRATES), Review of Systems (ROS), AYUSH Dashavidha Pariksha,
+ * and Red-Flag Emergency detection.
  */
 
-export interface TapChoice {
-  label: string;
-  labelHindi?: string;
-  value: string;
-  isRedFlagTrigger?: boolean;
+export interface AdaptiveQuestionConfig {
+  id: string;
+  complaintKey: string;
+  name: string;
+  nameHindi: string;
+  category: string;
+  questions: Array<{
+    id: string;
+    label: string;
+    labelHindi?: string;
+    type: 'select' | 'multiselect' | 'slider' | 'text';
+    options?: string[];
+    isRedFlagOption?: (value: any) => boolean;
+  }>;
 }
+
+export const ADAPTIVE_COMPLAINT_FLOWS: Record<string, AdaptiveQuestionConfig> = {
+  'chest-pain': {
+    id: 'chest-pain',
+    complaintKey: 'Chest Pain & Discomfort',
+    name: 'Chest Pain & Discomfort',
+    nameHindi: 'सीने में दर्द या भारीपन',
+    category: 'Cardiology / Emergency Triage',
+    questions: [
+      {
+        id: 'site',
+        label: 'Exact Location / Site of Discomfort',
+        labelHindi: 'दर्द का सही स्थान',
+        type: 'select',
+        options: ['Substernal / Central Chest', 'Left-sided Chest', 'Epigastric Area', 'Right-sided Chest'],
+      },
+      {
+        id: 'onset',
+        label: 'Onset & Duration',
+        labelHindi: 'दर्द कब और कैसे शुरू हुआ',
+        type: 'select',
+        options: ['Sudden acute onset (< 2 hours ago)', 'Gradual onset over 24 hours', 'Exertional (comes when climbing stairs)', 'Intermittent over 1 week'],
+      },
+      {
+        id: 'character',
+        label: 'Character / Nature of Pain',
+        labelHindi: 'दर्द किस प्रकार का महसूस होता है',
+        type: 'select',
+        options: ['Crushing / Heavy pressure', 'Sharp / Stabbing pain', 'Burning / Acidity sensation', 'Dull generalized ache'],
+      },
+      {
+        id: 'radiation',
+        label: 'Radiation / Spread of Pain',
+        labelHindi: 'क्या दर्द शरीर के अन्य भाग में फैलता है',
+        type: 'select',
+        options: ['Radiates to Left Arm & Jaw', 'Radiates to Back & Scapula', 'Radiates to Neck', 'No radiation (Localized)'],
+      },
+      {
+        id: 'associated',
+        label: 'Associated Symptoms (Select all that apply)',
+        labelHindi: 'साथ में होने वाली अन्य तकलीफें',
+        type: 'multiselect',
+        options: ['Severe Shortness of Breath (Dyspnoea)', 'Profuse Cold Sweating (Diaphoresis)', 'Nausea / Vomiting', 'Dizziness / Lightheadedness', 'Palpitations / Fast Heartbeat', 'None of these'],
+      },
+      {
+        id: 'aggravating',
+        label: 'Aggravating / Relieving Factors',
+        labelHindi: 'किस चीज़ से दर्द बढ़ता या घटता है',
+        type: 'select',
+        options: ['Worse with exertion, relieved by rest', 'Worse with deep breathing, relieved sitting forward', 'Worse after fatty meals, relieved by antacids', 'Constant regardless of activity'],
+      },
+    ],
+  },
+  'fever': {
+    id: 'fever',
+    complaintKey: 'Fever & Temperature Spikes',
+    name: 'Fever with Chills & Body Ache',
+    nameHindi: 'बुखार, कंपकंपी और बदन दर्द',
+    category: 'General Medicine / Infectious Disease',
+    questions: [
+      {
+        id: 'duration',
+        label: 'Duration of Fever',
+        labelHindi: 'बुखार कितने दिनों से है',
+        type: 'select',
+        options: ['1 to 2 days (Acute)', '3 to 5 days', '1 to 2 weeks (Prolonged)', 'Intermittent for over 1 month'],
+      },
+      {
+        id: 'temperature',
+        label: 'Highest Recorded Body Temperature',
+        labelHindi: 'अधिकतम तापमान कितना रहा',
+        type: 'select',
+        options: ['High Grade (102°F - 104°F)', 'Moderate Grade (100°F - 102°F)', 'Low Grade (< 100°F)', 'Not measured / Feels hot'],
+      },
+      {
+        id: 'pattern',
+        label: 'Pattern of Temperature Spikes',
+        labelHindi: 'बुखार का समय और रूप',
+        type: 'select',
+        options: ['Continuous high fever with chills/rigors', 'Evening temperature spikes', 'Alternate day spikes', 'Constant low grade with night sweats'],
+      },
+      {
+        id: 'associated',
+        label: 'Associated Symptoms',
+        labelHindi: 'साथ में अन्य लक्षण',
+        type: 'multiselect',
+        options: ['Severe Body Ache & Joint Pain', 'Persistent Dry Cough', 'Productive Cough with Yellow Phlegm', 'Nausea / Loss of Taste & Smell', 'Severe Retro-orbital Headache', 'Rash on skin', 'None'],
+      },
+      {
+        id: 'travel',
+        label: 'Recent Travel / Environmental Exposure',
+        labelHindi: 'हाल की यात्रा या मच्छर/जल संपर्क',
+        type: 'select',
+        options: ['Recent travel to endemic / forest area', 'History of mosquito bites in area', 'Contact with known viral patient', 'No specific exposure noted'],
+      },
+    ],
+  },
+  'cough': {
+    id: 'cough',
+    complaintKey: 'Cough & Respiratory Difficulty',
+    name: 'Cough & Respiratory Distress',
+    nameHindi: 'खांसी और सांस की तकलीफ',
+    category: 'Pulmonology / Respiratory',
+    questions: [
+      {
+        id: 'duration',
+        label: 'Duration of Cough',
+        labelHindi: 'खांसी कितने समय से है',
+        type: 'select',
+        options: ['Acute (< 1 week)', '1 to 3 weeks', 'Chronic persistent (> 3 weeks)', 'Recurrent seasonal attacks'],
+      },
+      {
+        id: 'character',
+        label: 'Type & Nature of Cough',
+        labelHindi: 'खांसी का प्रकार',
+        type: 'select',
+        options: ['Productive cough with yellow/green sputum', 'Dry hacking irritative cough', 'Barking / Paroxysmal spasms', 'Cough with blood streaks (Hemoptysis)'],
+      },
+      {
+        id: 'breathlessness',
+        label: 'Breathlessness & Wheezing',
+        labelHindi: 'सांस फूलना या सीटी की आवाज',
+        type: 'select',
+        options: ['Severe breathlessness at rest', 'Breathlessness on walking / stairs', 'Audible wheezing / whistling sound', 'No breathlessness'],
+      },
+      {
+        id: 'triggers',
+        label: 'Triggers & Exacerbating Factors',
+        labelHindi: 'किससे खांसी बढ़ती है',
+        type: 'select',
+        options: ['Cold air, dust & smoke', 'Worse at night while lying flat', 'Post-meal regurgitation', 'Physical exertion'],
+      },
+    ],
+  },
+  'headache': {
+    id: 'headache',
+    complaintKey: 'Severe Headache & Dizziness',
+    name: 'Severe Headache & Neurological Symptoms',
+    nameHindi: 'तीव्र सर दर्द, चक्कर या दृष्टि समस्या',
+    category: 'Neurology / General Medicine',
+    questions: [
+      {
+        id: 'onset',
+        label: 'Onset & Severity Pattern',
+        labelHindi: 'दर्द का आरंभ और तीव्रता',
+        type: 'select',
+        options: ['Sudden explosive "Thunderclap" onset (< 5 mins)', 'Gradual throbbing ache over hours', 'Constant tight band around forehead', 'Early morning headache with nausea'],
+      },
+      {
+        id: 'location',
+        label: 'Location of Headache',
+        labelHindi: 'सर दर्द का स्थान',
+        type: 'select',
+        options: ['Unilateral (One side of head)', 'Occipital / Back of head and neck', 'Frontal / Forehead and behind eyes', 'Diffuse all over head'],
+      },
+      {
+        id: 'associated',
+        label: 'Neurological & Visual Symptoms',
+        labelHindi: 'अन्य तंत्रिका लक्षण',
+        type: 'multiselect',
+        options: ['Visual aura / Flashing lights / Blurred vision', 'Nausea & projectile vomiting', 'Sensitivity to light & sound (Photophobia)', 'Sudden facial numbness or arm weakness', 'Slurred speech or confusion', 'None'],
+      },
+    ],
+  },
+  'abdominal-pain': {
+    id: 'abdominal-pain',
+    complaintKey: 'Abdominal Distress & Pain',
+    name: 'Abdominal Pain & Digestive Distress',
+    nameHindi: 'पेट दर्द, गैस, उल्टी या दस्त',
+    category: 'Gastroenterology / General Surgery',
+    questions: [
+      {
+        id: 'location',
+        label: 'Location of Abdominal Pain',
+        labelHindi: 'पेट दर्द का स्थान',
+        type: 'select',
+        options: ['Right Lower Quadrant (Iliac Fossa)', 'Epigastric (Upper Mid-Abdomen)', 'Right Upper Quadrant (Under ribs)', 'Diffuse / All over abdomen', 'Lower pelvic region'],
+      },
+      {
+        id: 'character',
+        label: 'Character of Pain',
+        labelHindi: 'दर्द का प्रकार',
+        type: 'select',
+        options: ['Severe sharp stabbing with tenderness', 'Colicky cramping spasms', 'Burning acid indigestion', 'Dull continuous ache'],
+      },
+      {
+        id: 'relation-meals',
+        label: 'Relation to Food & Meals',
+        labelHindi: 'भोजन से संबंध',
+        type: 'select',
+        options: ['Worse 30-60 mins after fatty meals', 'Relieved by eating food or antacids', 'Worse on empty stomach', 'No relation to meals'],
+      },
+      {
+        id: 'bowel-symptoms',
+        label: 'Associated Bowel & GI Symptoms',
+        labelHindi: 'पेट से जुड़े अन्य लक्षण',
+        type: 'multiselect',
+        options: ['Repeated vomiting', 'Inability to pass stool or flatus (Obstipation)', 'Watery loose diarrhea', 'Dark / Black tarry stools', 'High fever with abdominal bloating', 'None'],
+      },
+    ],
+  },
+};
 
 export interface ReviewOfSystemsCategory {
   id: string;
@@ -156,7 +368,7 @@ export interface FullIntakeRecord {
 }
 
 /**
- * Checks clinical red flags based on selected symptoms and vital parameters.
+ * Evaluates clinical red flags for urgent triage escalation.
  */
 export function evaluateRedFlags(intake: Partial<FullIntakeRecord>): { isRedFlag: boolean; reasons: string[] } {
   const reasons: string[] = [];
@@ -183,6 +395,10 @@ export function evaluateRedFlags(intake: Partial<FullIntakeRecord>): { isRedFlag
     reasons.push('Active hemoptysis (coughing blood) requires urgent physician review.');
   }
 
+  if (ros.includes('syncope')) {
+    reasons.push('Recent episode of syncope / loss of consciousness requires cardiovascular & neurological evaluation.');
+  }
+
   return {
     isRedFlag: reasons.length > 0,
     reasons,
@@ -197,7 +413,7 @@ export function generateClinicalHistorySummary(data: FullIntakeRecord): string {
   if (data.isRedFlagTriggered) {
     text += `*** 🚨 URGENT MEDICAL TRIAGE ALERT ***\n`;
     text += `Red Flag Triggers: ${data.redFlagDetails.join(' | ')}\n`;
-    text += `Priority status assigned for immediate clinician assessment.\n\n`;
+    text += `Priority triage assignment registered in hospital OPD queue.\n\n`;
   }
 
   text += `PATIENT CLINICAL INTAKE SUMMARY (AAROGYAM EMR DRAFT)\n`;

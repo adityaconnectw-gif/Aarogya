@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Stethoscope,
@@ -39,20 +39,38 @@ import {
   Check,
   X,
   Lock,
+  RotateCw,
+  Layers,
+  HelpCircle,
+  Eye,
+  Info,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
 import { Badge } from '../../components/common/Badge';
 import { useApp } from '../../context/AppContext';
 import { useToast } from '../../components/common/Toast';
-import { speakText, stopSpeaking, startSpeechRecognition } from '../../services/speechService';
+import {
+  speakText,
+  stopSpeaking,
+  startSpeechRecognition,
+  getLanguageBCP47,
+  isSpeechRecognitionSupported,
+} from '../../services/speechService';
 import { verifyABHAId, generateConsentArtifact } from '../../services/abdmService';
-import { PRESET_OCR_DOCUMENTS, OcrDocumentResult, simulateDocumentProcessing } from '../../services/ocrService';
+import {
+  PRESET_OCR_DOCUMENTS,
+  OcrDocumentResult,
+  simulateStagedOcrProcessing,
+  OCR_PROCESSING_STAGES,
+  ScannedPage,
+} from '../../services/ocrService';
 import {
   REVIEW_OF_SYSTEMS,
   FullIntakeRecord,
   evaluateRedFlags,
   generateClinicalHistorySummary,
+  ADAPTIVE_COMPLAINT_FLOWS,
 } from '../../services/clinicalIntakeService';
 
 export const ClinicalIntakePage: React.FC = () => {
@@ -60,19 +78,22 @@ export const ClinicalIntakePage: React.FC = () => {
   const { showToast } = useToast();
   const { patient, addDocument, saveClinicalIntakeSummary, logAudit } = useApp();
 
-  // Progress Steps: 1. Identify | 2. Consent | 3. History | 4. Documents | 5. Summary | 6. Handoff
+  // Progress Steps: 1. Identify | 2. Consent | 3. Adaptive History | 4. Documents & Scanner | 5. Summary | 6. Handoff
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
 
-  // Audio Guidance state
+  // Audio Guidance & Voice Input State
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [activeVoiceTarget, setActiveVoiceTarget] = useState<string | null>(null);
 
   // 1. Identify State
   const [patientType, setPatientType] = useState<'existing' | 'new'>('existing');
   const [abhaInput, setAbhaInput] = useState('12-3456-7890-1234');
   const [patientName, setPatientName] = useState(patient.name || 'Aditya Verma');
   const [patientAge, setPatientAge] = useState(patient.age || 20);
-  const [patientGender, setPatientGender] = useState(patient.gender || 'Male');
+  const [patientGender, setPatientGender] = useState<'Male' | 'Female' | 'Other'>(
+    (patient.gender as any) || 'Male'
+  );
   const [patientPhone, setPatientPhone] = useState(patient.phone || '+91 98765 43210');
   const [selectedLanguage, setSelectedLanguage] = useState('English');
   const [abhaVerified, setAbhaVerified] = useState(true);
@@ -82,18 +103,22 @@ export const ClinicalIntakePage: React.FC = () => {
 
   // 3. Clinical History State
   const [intakeMode, setIntakeMode] = useState<'allopathic' | 'ayush'>('allopathic');
+  const [selectedComplaintId, setSelectedComplaintId] = useState<string>('chest-pain');
   const [chiefComplaint, setChiefComplaint] = useState('Chest Pain & Discomfort');
   const [chiefComplaintOther, setChiefComplaintOther] = useState('');
   const [severity, setSeverity] = useState(7);
-  
-  // HPI SOCRATES Breakdown
-  const [hpiSite, setHpiSite] = useState('Substernal / Central Chest');
-  const [hpiOnset, setHpiOnset] = useState('Sudden acute onset (< 2 hours)');
-  const [hpiCharacter, setHpiCharacter] = useState('Crushing / Heavy pressure');
-  const [hpiRadiation, setHpiRadiation] = useState('Radiates to Left Arm & Jaw');
-  const [hpiAggravating, setHpiAggravating] = useState('Worse with physical exertion');
-  const [hpiRelieving, setHpiRelieving] = useState('Relieved by rest');
-  const [hpiDuration, setHpiDuration] = useState('2 hours');
+
+  // Adaptive HPI Answers dictionary
+  const [adaptiveAnswers, setAdaptiveAnswers] = useState<Record<string, any>>({
+    site: 'Substernal / Central Chest',
+    onset: 'Sudden acute onset (< 2 hours ago)',
+    character: 'Crushing / Heavy pressure',
+    radiation: 'Radiates to Left Arm & Jaw',
+    associated: ['Severe Shortness of Breath (Dyspnoea)', 'Profuse Cold Sweating (Diaphoresis)'],
+    aggravating: 'Worse with exertion, relieved by rest',
+    duration: '2 hours',
+  });
+
   const [patientNarrative, setPatientNarrative] = useState(
     'Pain started suddenly while climbing stairs. Feels like a heavy weight pressing on my chest and radiating down my left arm.'
   );
@@ -114,9 +139,8 @@ export const ClinicalIntakePage: React.FC = () => {
     'Montelukast 10mg (Nightly)',
   ]);
   const [allergies, setAllergies] = useState<string[]>([
-    'Penicillin / Amoxicillin (Severe anaphylactoid rash)',
+    'Penicillin / Amoxicillin (Severe allergy - Anaphylactoid rash)',
   ]);
-  const [newMedInput, setNewMedInput] = useState('');
 
   // Family & Lifestyle
   const [familyHistory, setFamilyHistory] = useState<string[]>([
@@ -151,13 +175,25 @@ export const ClinicalIntakePage: React.FC = () => {
     'Acute Chest Discomfort with radiation to left arm (Suspected Acute Coronary Syndrome).',
   ]);
 
-  // 4. Documents & OCR State
+  // 4. Documents & Realistic Scanner / Upload State
   const [documentsList, setDocumentsList] = useState<OcrDocumentResult[]>([
     PRESET_OCR_DOCUMENTS[0],
     PRESET_OCR_DOCUMENTS[1],
   ]);
-  const [isProcessingDoc, setIsProcessingDoc] = useState(false);
-  const [editingItem, setEditingItem] = useState<{ docId: string; type: string; itemId: string } | null>(null);
+  const [activeDocTab, setActiveDocTab] = useState<'upload' | 'scanner'>('upload');
+  const [docTypeSelection, setDocTypeSelection] = useState<OcrDocumentResult['documentType']>('Prescription');
+  const [docLanguageSelection, setDocLanguageSelection] = useState('English / Hindi');
+
+  // Scanner State
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [scannedPages, setScannedPages] = useState<ScannedPage[]>([]);
+  const [currentRotation, setCurrentRotation] = useState<number>(0);
+
+  // Staged OCR Processing
+  const [isOcrProcessing, setIsOcrProcessing] = useState(false);
+  const [ocrStage, setOcrStage] = useState<number>(1);
 
   // 5. OPD Token & Handoff State
   const [tokenNumber] = useState('OPD-MED-402');
@@ -167,13 +203,13 @@ export const ClinicalIntakePage: React.FC = () => {
     const evaluation = evaluateRedFlags({
       chiefComplaint,
       hpi: {
-        site: hpiSite,
-        onset: hpiOnset,
-        character: hpiCharacter,
-        radiation: hpiRadiation,
-        aggravating: hpiAggravating,
-        relieving: hpiRelieving,
-        duration: hpiDuration,
+        site: adaptiveAnswers.site || '',
+        onset: adaptiveAnswers.onset || '',
+        character: adaptiveAnswers.character || '',
+        radiation: adaptiveAnswers.radiation || '',
+        aggravating: adaptiveAnswers.aggravating || '',
+        relieving: adaptiveAnswers.relieving || '',
+        duration: adaptiveAnswers.duration || '2 hours',
         patientNarrative,
       },
       severity,
@@ -181,7 +217,97 @@ export const ClinicalIntakePage: React.FC = () => {
     });
     setIsRedFlag(evaluation.isRedFlag);
     setRedFlagDetails(evaluation.reasons);
-  }, [chiefComplaint, hpiSite, hpiOnset, hpiCharacter, hpiRadiation, hpiAggravating, hpiRelieving, severity, selectedRos]);
+  }, [chiefComplaint, adaptiveAnswers, severity, selectedRos, patientNarrative]);
+
+  // Camera Management
+  const startCamera = async () => {
+    setCameraError(null);
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+        });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.play();
+        }
+        setIsCameraActive(true);
+      } else {
+        setCameraError('Camera stream not supported in this browser. You can use standard file upload.');
+      }
+    } catch (err) {
+      setCameraError('Hospital kiosk camera is offline or permission was denied. You can use standard file upload or simulated capture.');
+      setIsCameraActive(false);
+    }
+  };
+
+  const stopCamera = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach((track) => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    setIsCameraActive(false);
+  };
+
+  // Capture Page in Scanner
+  const handleCapturePage = () => {
+    const newPageNum = scannedPages.length + 1;
+    const placeholderThumbnails = [
+      'https://images.unsplash.com/photo-1584515979956-d9f6e5d09982?auto=format&fit=crop&w=400&q=80',
+      'https://images.unsplash.com/photo-1579154204601-01588f351e67?auto=format&fit=crop&w=400&q=80',
+      'https://images.unsplash.com/photo-1586773860418-d37222d8fce3?auto=format&fit=crop&w=400&q=80',
+    ];
+    const newPage: ScannedPage = {
+      pageNumber: newPageNum,
+      thumbnailUrl: placeholderThumbnails[(newPageNum - 1) % placeholderThumbnails.length],
+      rotation: currentRotation,
+    };
+    setScannedPages([...scannedPages, newPage]);
+    showToast(`Page ${newPageNum} captured successfully.`, 'success');
+  };
+
+  // Rotate Page
+  const handleRotatePage = (pageNum: number) => {
+    setScannedPages(
+      scannedPages.map((p) =>
+        p.pageNumber === pageNum ? { ...p, rotation: (p.rotation + 90) % 360 } : p
+      )
+    );
+  };
+
+  // Remove Page
+  const handleRemovePage = (pageNum: number) => {
+    const filtered = scannedPages.filter((p) => p.pageNumber !== pageNum);
+    const renumbered = filtered.map((p, idx) => ({ ...p, pageNumber: idx + 1 }));
+    setScannedPages(renumbered);
+  };
+
+  // Run Staged OCR Processing
+  const handleRunOcrIngestion = async (sourceType: 'upload' | 'scanner') => {
+    setIsOcrProcessing(true);
+    setOcrStage(1);
+    try {
+      const newDoc = await simulateStagedOcrProcessing((stage) => {
+        setOcrStage(stage);
+      }, documentsList.length);
+
+      newDoc.documentType = docTypeSelection;
+      if (sourceType === 'scanner' && scannedPages.length > 0) {
+        newDoc.pageCount = scannedPages.length;
+        newDoc.pages = scannedPages;
+      }
+
+      setDocumentsList((prev) => [...prev, newDoc]);
+      setScannedPages([]);
+      stopCamera();
+      showToast(`Document digitized & OCR entities extracted: ${newDoc.documentTitle}`, 'success');
+    } catch {
+      showToast('Document could not be processed. Please retry or continue without document.', 'error');
+    } finally {
+      setIsOcrProcessing(false);
+    }
+  };
 
   // Read voice instructions
   const handleAudioGuidance = (text: string) => {
@@ -193,28 +319,38 @@ export const ClinicalIntakePage: React.FC = () => {
       speakText(
         text,
         () => setIsSpeaking(true),
-        () => setIsSpeaking(false)
+        () => setIsSpeaking(false),
+        selectedLanguage
       );
     }
   };
 
-  // Voice recording for patient narrative
-  const handleToggleVoiceInput = () => {
-    if (isListening) {
+  // Question Voice Recording
+  const handleVoiceInputForTarget = (targetKey: string) => {
+    if (isListening && activeVoiceTarget === targetKey) {
       setIsListening(false);
+      setActiveVoiceTarget(null);
     } else {
+      setActiveVoiceTarget(targetKey);
       setIsListening(true);
       startSpeechRecognition(
         (transcript) => {
-          setPatientNarrative(transcript);
+          if (targetKey === 'narrative') {
+            setPatientNarrative(transcript);
+          } else {
+            setAdaptiveAnswers((prev) => ({ ...prev, [targetKey]: transcript }));
+          }
         },
         (err) => {
           showToast(err, 'warning');
           setIsListening(false);
+          setActiveVoiceTarget(null);
         },
         () => {
           setIsListening(false);
-        }
+          setActiveVoiceTarget(null);
+        },
+        selectedLanguage
       );
     }
   };
@@ -227,17 +363,27 @@ export const ClinicalIntakePage: React.FC = () => {
       setAbhaInput(res.abhaId);
       setPatientAge(20);
       setPatientGender('Male');
+      setSelectedComplaintId('chest-pain');
       setChiefComplaint('Chest Pain & Discomfort');
       setSeverity(8);
       setIntakeMode('allopathic');
-      showToast('Loaded Demo Patient: Aditya Verma (Acute Chest Pain)', 'info');
+      setAdaptiveAnswers({
+        site: 'Substernal / Central Chest',
+        onset: 'Sudden acute onset (< 2 hours ago)',
+        character: 'Crushing / Heavy pressure',
+        radiation: 'Radiates to Left Arm & Jaw',
+        associated: ['Severe Shortness of Breath (Dyspnoea)', 'Profuse Cold Sweating (Diaphoresis)'],
+        aggravating: 'Worse with exertion, relieved by rest',
+      });
+      showToast('Loaded Demo Patient: Aditya Verma (Acute Chest Pain / Cardiology)', 'info');
     } else if (persona === 'kamala') {
       const res = await verifyABHAId('98-7654-3210-9876');
       setPatientName('Kamala Devi');
       setAbhaInput('98-7654-3210-9876');
       setPatientAge(68);
       setPatientGender('Female');
-      setChiefComplaint('Joint Pain & Morning Stiffness');
+      setSelectedComplaintId('abdominal-pain');
+      setChiefComplaint('Abdominal Distress & Pain');
       setSeverity(6);
       setIntakeMode('ayush');
       showToast('Loaded Demo Patient: Kamala Devi (AYUSH Joint & Pariksha Intake)', 'info');
@@ -246,24 +392,11 @@ export const ClinicalIntakePage: React.FC = () => {
       setAbhaInput('44-1122-3344-5566');
       setPatientAge(34);
       setPatientGender('Male');
-      setChiefComplaint('Fever with Cough & Breathlessness');
+      setSelectedComplaintId('fever');
+      setChiefComplaint('Fever & Temperature Spikes');
       setSeverity(5);
       setIntakeMode('allopathic');
       showToast('Loaded Demo Patient: Ramesh Kumar (General OPD Walk-In)', 'info');
-    }
-  };
-
-  // Add Document via simulated scan/upload
-  const handleSimulateDocumentUpload = async () => {
-    setIsProcessingDoc(true);
-    try {
-      const newDoc = await simulateDocumentProcessing(documentsList.length);
-      setDocumentsList((prev) => [...prev, newDoc]);
-      showToast(`Document digitized & OCR entities extracted: ${newDoc.documentTitle}`, 'success');
-    } catch {
-      showToast('Document processing failed. Please retry.', 'error');
-    } finally {
-      setIsProcessingDoc(false);
     }
   };
 
@@ -283,13 +416,13 @@ export const ClinicalIntakePage: React.FC = () => {
     chiefComplaintOther,
     severity,
     hpi: {
-      site: hpiSite,
-      onset: hpiOnset,
-      character: hpiCharacter,
-      radiation: hpiRadiation,
-      aggravating: hpiAggravating,
-      relieving: hpiRelieving,
-      duration: hpiDuration,
+      site: adaptiveAnswers.site || '',
+      onset: adaptiveAnswers.onset || '',
+      character: adaptiveAnswers.character || '',
+      radiation: adaptiveAnswers.radiation || '',
+      aggravating: adaptiveAnswers.aggravating || '',
+      relieving: adaptiveAnswers.relieving || '',
+      duration: adaptiveAnswers.duration || '2 hours',
       patientNarrative,
     },
     pastMedicalHistory,
@@ -331,7 +464,12 @@ export const ClinicalIntakePage: React.FC = () => {
       addDocument({
         patientId: patient.patientId || 'P-10001',
         title: d.documentTitle,
-        category: d.documentType === 'Prescription' ? 'Prescriptions' : d.documentType === 'Lab Report' ? 'Lab Reports' : 'Discharge Summaries',
+        category:
+          d.documentType === 'Prescription'
+            ? 'Prescriptions'
+            : d.documentType === 'Lab Report'
+            ? 'Lab Reports'
+            : 'Discharge Summaries',
         date: d.documentDate,
         hospitalName: d.issuingFacility,
         doctorName: 'Dr. R. Sharma',
@@ -355,6 +493,16 @@ export const ClinicalIntakePage: React.FC = () => {
     showToast('Clinical history compiled & dispatched to Attending Physician room.', 'success');
   };
 
+  // Reset / Clear Session for Shared Kiosk Safety
+  const handleResetSession = () => {
+    setStep(1);
+    setScannedPages([]);
+    stopCamera();
+    showToast('Kiosk session buffer cleared. Ready for next patient.', 'info');
+  };
+
+  const activeComplaintFlow = ADAPTIVE_COMPLAINT_FLOWS[selectedComplaintId] || ADAPTIVE_COMPLAINT_FLOWS['chest-pain'];
+
   return (
     <div className="space-y-6">
       {/* 1. Official Page Header */}
@@ -366,7 +514,7 @@ export const ClinicalIntakePage: React.FC = () => {
             </div>
             <div>
               <h1 className="text-lg sm:text-xl font-bold text-foreground tracking-tight">
-                Self-Service Clinical Intake
+                Self-Service Clinical Intake & Document Digitization
               </h1>
               <p className="text-xs text-muted-foreground">
                 Pre-consultation history recording and document digitization for hospital OPD appointments.
@@ -375,7 +523,7 @@ export const ClinicalIntakePage: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
           {/* Audio Guidance TTS Button */}
           <Button
             size="sm"
@@ -389,7 +537,7 @@ export const ClinicalIntakePage: React.FC = () => {
                   : step === 3
                   ? 'Please choose or speak your chief medical complaint and answer the guided questions.'
                   : step === 4
-                  ? 'Please review your scanned medical documents and extracted medications.'
+                  ? 'Please scan or upload your prior paper prescriptions and lab reports.'
                   : step === 5
                   ? 'Please review your complete clinical summary before it is sent to the doctor.'
                   : 'Your clinical intake is complete. Please proceed to the consultation room.'
@@ -398,6 +546,10 @@ export const ClinicalIntakePage: React.FC = () => {
             leftIcon={isSpeaking ? <VolumeX className="h-3.5 w-3.5 text-danger" /> : <Volume2 className="h-3.5 w-3.5 text-primary" />}
           >
             {isSpeaking ? 'Stop Audio' : 'Listen to Guide'}
+          </Button>
+
+          <Button size="sm" variant="ghost" onClick={handleResetSession} leftIcon={<RefreshCw className="h-3.5 w-3.5" />}>
+            Reset Session
           </Button>
 
           <Badge variant="primary" size="sm">
@@ -412,8 +564,8 @@ export const ClinicalIntakePage: React.FC = () => {
           {[
             { num: 1, label: '1. Identify' },
             { num: 2, label: '2. Consent' },
-            { num: 3, label: '3. Clinical History' },
-            { num: 4, label: '4. Documents & OCR' },
+            { num: 3, label: '3. Clinical History (Speak & Tap)' },
+            { num: 4, label: '4. Documents & Scanner' },
             { num: 5, label: '5. Summary' },
             { num: 6, label: '6. Consultation Ready' },
           ].map((s) => (
@@ -682,7 +834,7 @@ export const ClinicalIntakePage: React.FC = () => {
         </Card>
       )}
 
-      {/* ================= STEP 3: CLINICAL HISTORY INTERVIEW (SPEAK & TAP) ================= */}
+      {/* ================= STEP 3: ADAPTIVE CLINICAL HISTORY (SPEAK & TAP) ================= */}
       {step === 3 && (
         <div className="space-y-5">
           {/* Intake Framework Mode Switcher */}
@@ -729,10 +881,10 @@ export const ClinicalIntakePage: React.FC = () => {
                 <AlertTriangle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
                 <div className="space-y-1 text-xs">
                   <span className="font-bold text-sm block text-rose-800 dark:text-rose-200">
-                    Urgent Medical Attention Required
+                    Immediate Clinical Attention May Be Required
                   </span>
                   <p className="leading-relaxed">
-                    Your response may indicate a symptom that needs immediate medical assessment: <strong>{redFlagDetails[0]}</strong>.
+                    Please remain seated. Hospital staff have been alerted to prioritize your consultation review: <strong>{redFlagDetails[0]}</strong>.
                   </p>
                 </div>
               </div>
@@ -740,7 +892,7 @@ export const ClinicalIntakePage: React.FC = () => {
                 <Button
                   size="sm"
                   variant="danger"
-                  onClick={() => showToast('Hospital triage staff notified for priority assessment.', 'info')}
+                  onClick={() => showToast('OPD triage desk notified for priority assessment.', 'info')}
                 >
                   Alert Staff
                 </Button>
@@ -748,44 +900,33 @@ export const ClinicalIntakePage: React.FC = () => {
             </div>
           )}
 
-          {/* 1. Chief Complaint (Speak & Tap) */}
+          {/* 1. Chief Complaint Selection */}
           <Card>
             <CardHeader>
               <div>
-                <CardTitle className="text-sm sm:text-base">1. Presenting Chief Complaint</CardTitle>
-                <CardDescription>Select your primary health reason for this consultation or speak into the microphone.</CardDescription>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Button
-                  size="sm"
-                  variant={isListening ? 'danger' : 'outline'}
-                  onClick={handleToggleVoiceInput}
-                  leftIcon={isListening ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5 text-primary" />}
-                >
-                  {isListening ? 'Stop Recording' : 'Speak Complaint'}
-                </Button>
+                <CardTitle className="text-sm sm:text-base">1. Presenting Chief Complaint (Tap or Speak)</CardTitle>
+                <CardDescription>Select what is bothering you today, or tap the microphone to speak your answer.</CardDescription>
               </div>
             </CardHeader>
 
             <CardContent className="space-y-4 text-xs">
-              {/* Tap Choice Buttons */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
                 {[
-                  { label: 'Chest Pain & Discomfort', hindi: 'सीने में दर्द' },
-                  { label: 'Fever & Cough', hindi: 'बुखार और खांसी' },
-                  { label: 'Abdominal Distress', hindi: 'पेट दर्द या गैस' },
-                  { label: 'Joint Pain & Stiffness', hindi: 'जोड़ों का दर्द' },
-                  { label: 'Breathing Difficulty', hindi: 'सांस की तकलीफ' },
-                  { label: 'Severe Headache / Dizziness', hindi: 'सर दर्द या चक्कर' },
-                  { label: 'Skin Rash / Allergy', hindi: 'त्वचा की एलर्जी' },
-                  { label: 'Other Health Concern', hindi: 'अन्य समस्या' },
+                  { id: 'chest-pain', label: 'Chest Pain & Discomfort', hindi: 'सीने में दर्द या भारीपन' },
+                  { id: 'fever', label: 'Fever & Chills', hindi: 'बुखार और कंपकंपी' },
+                  { id: 'cough', label: 'Cough & Breathlessness', hindi: 'खांसी और सांस की तकलीफ' },
+                  { id: 'headache', label: 'Severe Headache', hindi: 'तीव्र सर दर्द' },
+                  { id: 'abdominal-pain', label: 'Abdominal Distress', hindi: 'पेट दर्द या गैस' },
                 ].map((c) => (
                   <button
-                    key={c.label}
+                    key={c.id}
                     type="button"
-                    onClick={() => setChiefComplaint(c.label)}
+                    onClick={() => {
+                      setSelectedComplaintId(c.id);
+                      setChiefComplaint(c.label);
+                    }}
                     className={`p-3 rounded-md border text-left transition-colors ${
-                      chiefComplaint === c.label
+                      selectedComplaintId === c.id
                         ? 'bg-primary-muted border-primary text-primary font-bold shadow-xs'
                         : 'bg-surface border-border text-foreground hover:bg-surface-alt'
                     }`}
@@ -796,7 +937,7 @@ export const ClinicalIntakePage: React.FC = () => {
                 ))}
               </div>
 
-              {/* Severity Slider */}
+              {/* Severity Rating */}
               <div className="p-3.5 rounded-md bg-surface-alt border border-border space-y-2">
                 <div className="flex justify-between items-center text-xs">
                   <span className="font-semibold text-foreground">Symptom Severity Rating: {severity}/10</span>
@@ -813,12 +954,116 @@ export const ClinicalIntakePage: React.FC = () => {
                   className="w-full h-2 bg-border rounded-lg appearance-none cursor-pointer accent-primary"
                 />
               </div>
+            </CardContent>
+          </Card>
 
-              {/* Spoken Narration Box */}
+          {/* 2. Adaptive Questions for Selected Complaint */}
+          <Card>
+            <CardHeader>
               <div>
-                <label className="block font-semibold text-foreground mb-1">
-                  Patient Voice Transcript & Additional Remarks
-                </label>
+                <CardTitle className="text-sm sm:text-base">
+                  2. Clinical Details for: {activeComplaintFlow.name}
+                </CardTitle>
+                <CardDescription>
+                  Questions tailored to your primary concern. You can tap choices or speak your answers.
+                </CardDescription>
+              </div>
+            </CardHeader>
+
+            <CardContent className="space-y-5 text-xs">
+              {activeComplaintFlow.questions.map((q) => {
+                const currentVal = adaptiveAnswers[q.id];
+                const isListeningThis = isListening && activeVoiceTarget === q.id;
+
+                return (
+                  <div key={q.id} className="p-3.5 rounded-md bg-surface-alt border border-border space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <label className="font-bold text-foreground block">
+                        {q.label} {q.labelHindi && <span className="text-muted-foreground font-normal">({q.labelHindi})</span>}
+                      </label>
+                      <Button
+                        size="sm"
+                        variant={isListeningThis ? 'danger' : 'outline'}
+                        onClick={() => handleVoiceInputForTarget(q.id)}
+                        leftIcon={isListeningThis ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5 text-primary" />}
+                      >
+                        {isListeningThis ? 'Listening...' : 'Speak Answer'}
+                      </Button>
+                    </div>
+
+                    {q.type === 'select' && q.options && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {q.options.map((opt) => (
+                          <button
+                            key={opt}
+                            type="button"
+                            onClick={() => setAdaptiveAnswers({ ...adaptiveAnswers, [q.id]: opt })}
+                            className={`p-2.5 rounded border text-left transition-colors ${
+                              currentVal === opt
+                                ? 'bg-primary-muted border-primary text-primary font-bold shadow-xs'
+                                : 'bg-surface border-border text-foreground hover:bg-surface-alt'
+                            }`}
+                          >
+                            {opt}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {q.type === 'multiselect' && q.options && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {q.options.map((opt) => {
+                          const isChecked = Array.isArray(currentVal) && currentVal.includes(opt);
+                          return (
+                            <button
+                              key={opt}
+                              type="button"
+                              onClick={() => {
+                                const arr = Array.isArray(currentVal) ? [...currentVal] : [];
+                                if (isChecked) {
+                                  setAdaptiveAnswers({ ...adaptiveAnswers, [q.id]: arr.filter((x) => x !== opt) });
+                                } else {
+                                  setAdaptiveAnswers({ ...adaptiveAnswers, [q.id]: [...arr, opt] });
+                                }
+                              }}
+                              className={`p-2.5 rounded border text-left transition-colors flex items-center justify-between ${
+                                isChecked
+                                  ? 'bg-primary-muted border-primary text-primary font-bold shadow-xs'
+                                  : 'bg-surface border-border text-foreground hover:bg-surface-alt'
+                              }`}
+                            >
+                              <span>{opt}</span>
+                              {isChecked && <Check className="h-3.5 w-3.5 text-primary" />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+
+              {/* Spoken Narration */}
+              <div className="space-y-1.5 pt-2">
+                <div className="flex items-center justify-between">
+                  <label className="font-semibold text-foreground">
+                    Additional Remarks / Spoken Narrative
+                  </label>
+                  <Button
+                    size="sm"
+                    variant={isListening && activeVoiceTarget === 'narrative' ? 'danger' : 'outline'}
+                    onClick={() => handleVoiceInputForTarget('narrative')}
+                    leftIcon={
+                      isListening && activeVoiceTarget === 'narrative' ? (
+                        <MicOff className="h-3.5 w-3.5" />
+                      ) : (
+                        <Mic className="h-3.5 w-3.5 text-primary" />
+                      )
+                    }
+                  >
+                    {isListening && activeVoiceTarget === 'narrative' ? 'Listening...' : 'Speak Narrative'}
+                  </Button>
+                </div>
                 <textarea
                   rows={2}
                   value={patientNarrative}
@@ -830,84 +1075,12 @@ export const ClinicalIntakePage: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* 2. Adaptive HPI Breakdown (SOCRATES Framework) */}
-          <Card>
-            <CardHeader>
-              <div>
-                <CardTitle className="text-sm sm:text-base">2. History of Present Illness (Adaptive SOCRATES)</CardTitle>
-                <CardDescription>Clinical details tailored to {chiefComplaint}.</CardDescription>
-              </div>
-            </CardHeader>
-
-            <CardContent className="space-y-4 text-xs">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block font-semibold text-foreground mb-1">Anatomical Location / Site</label>
-                  <input
-                    type="text"
-                    value={hpiSite}
-                    onChange={(e) => setHpiSite(e.target.value)}
-                    className="w-full h-9 px-3 rounded-md bg-surface border border-input text-foreground text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-foreground mb-1">Onset & Duration</label>
-                  <input
-                    type="text"
-                    value={hpiOnset}
-                    onChange={(e) => setHpiOnset(e.target.value)}
-                    className="w-full h-9 px-3 rounded-md bg-surface border border-input text-foreground text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-foreground mb-1">Character & Sensation</label>
-                  <input
-                    type="text"
-                    value={hpiCharacter}
-                    onChange={(e) => setHpiCharacter(e.target.value)}
-                    className="w-full h-9 px-3 rounded-md bg-surface border border-input text-foreground text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-foreground mb-1">Radiation / Spread</label>
-                  <input
-                    type="text"
-                    value={hpiRadiation}
-                    onChange={(e) => setHpiRadiation(e.target.value)}
-                    className="w-full h-9 px-3 rounded-md bg-surface border border-input text-foreground text-xs"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-                <div>
-                  <label className="block font-semibold text-foreground mb-1">Aggravating Factors</label>
-                  <input
-                    type="text"
-                    value={hpiAggravating}
-                    onChange={(e) => setHpiAggravating(e.target.value)}
-                    className="w-full h-9 px-3 rounded-md bg-surface border border-input text-foreground text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-foreground mb-1">Relieving Factors</label>
-                  <input
-                    type="text"
-                    value={hpiRelieving}
-                    onChange={(e) => setHpiRelieving(e.target.value)}
-                    className="w-full h-9 px-3 rounded-md bg-surface border border-input text-foreground text-xs"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* 3. Review of Systems (ROS) */}
           <Card>
             <CardHeader>
               <div>
                 <CardTitle className="text-sm sm:text-base">3. Review of Systems (ROS)</CardTitle>
-                <CardDescription>Select any additional constitutional or systemic symptoms you are experiencing.</CardDescription>
+                <CardDescription>Select any other constitutional symptoms you are experiencing.</CardDescription>
               </div>
             </CardHeader>
 
@@ -949,194 +1122,207 @@ export const ClinicalIntakePage: React.FC = () => {
             </CardContent>
           </Card>
 
-          {/* 4. AYUSH Dashavidha Pariksha (If selected) */}
-          {intakeMode === 'ayush' && (
-            <Card>
-              <CardHeader>
-                <div>
-                  <CardTitle className="text-sm sm:text-base flex items-center gap-2 text-amber-800 dark:text-amber-300">
-                    <Sparkles className="h-4 w-4" />
-                    4. AYUSH Dashavidha & Ashtavidha Pariksha Framework
-                  </CardTitle>
-                  <CardDescription>Ayurvedic constitution, digestion, and lifestyle parameters.</CardDescription>
-                </div>
-              </CardHeader>
-
-              <CardContent className="space-y-4 text-xs">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block font-semibold text-foreground mb-1">Deha Prakriti (Constitution)</label>
-                    <select
-                      value={ayushPrakriti}
-                      onChange={(e) => setAyushPrakriti(e.target.value)}
-                      className="w-full h-9 px-3 rounded-md bg-surface border border-input text-foreground text-xs"
-                    >
-                      <option value="Vata-Pitta (वात-पित्त)">Vata-Pitta (वात-पित्त)</option>
-                      <option value="Pitta-Kapha (पित्त-कफ)">Pitta-Kapha (पित्त-कफ)</option>
-                      <option value="Vata-Kapha (वात-कफ)">Vata-Kapha (वात-कफ)</option>
-                      <option value="Tridosha (त्रिदोष सम)">Tridosha (त्रिदोष सम)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block font-semibold text-foreground mb-1">Jatharagni (Digestive Fire)</label>
-                    <select
-                      value={ayushAgni}
-                      onChange={(e) => setAyushAgni(e.target.value)}
-                      className="w-full h-9 px-3 rounded-md bg-surface border border-input text-foreground text-xs"
-                    >
-                      <option value="Samagni (Balanced / सम अग्नि)">Samagni (Balanced / सम अग्नि)</option>
-                      <option value="Tikshnagni (Sharp / तीक्ष्णाग्नि)">Tikshnagni (Sharp / तीक्ष्णाग्नि)</option>
-                      <option value="Mandagni (Sluggish / मन्दाग्नि)">Mandagni (Sluggish / मन्दाग्नि)</option>
-                      <option value="Vishamagni (Irregular / विषमाग्नि)">Vishamagni (Irregular / विषमाग्नि)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block font-semibold text-foreground mb-1">Koshtha (Bowel Nature)</label>
-                    <select
-                      value={ayushKoshtha}
-                      onChange={(e) => setAyushKoshtha(e.target.value)}
-                      className="w-full h-9 px-3 rounded-md bg-surface border border-input text-foreground text-xs"
-                    >
-                      <option value="Mridu (Soft / Fast)">Mridu (Soft / Fast)</option>
-                      <option value="Madhyama (Moderate / Regular)">Madhyama (Moderate / Regular)</option>
-                      <option value="Krura (Hard / Constipated)">Krura (Hard / Constipated)</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block font-semibold text-foreground mb-1">Ahara-Vihara (Dietary & Daily Routine Factors)</label>
-                  <textarea
-                    rows={2}
-                    value={ayushAharaVihara}
-                    onChange={(e) => setAyushAharaVihara(e.target.value)}
-                    className="w-full p-2.5 rounded-md bg-surface border border-input text-foreground text-xs"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Navigation Buttons */}
           <div className="flex justify-between items-center pt-3">
             <Button size="md" variant="outline" onClick={() => setStep(2)} leftIcon={<ArrowLeft className="h-4 w-4" />}>
               Back: Consent
             </Button>
             <Button size="md" variant="primary" onClick={() => setStep(4)} rightIcon={<ArrowRight className="h-4 w-4" />}>
-              Next: Scan Prior Physical Documents
+              Next: Scan / Upload Medical Documents
             </Button>
           </div>
         </div>
       )}
 
-      {/* ================= STEP 4: DOCUMENT UPLOAD & OCR REVIEW ================= */}
+      {/* ================= STEP 4: DOCUMENT UPLOAD & MULTI-PAGE KIOSK SCANNER ================= */}
       {step === 4 && (
-        <Card>
-          <CardHeader>
-            <div>
-              <CardTitle>Step 4: Prior Medical Document Digitization & OCR Review</CardTitle>
-              <CardDescription>
-                Scan or upload physical paper prescriptions, lab reports, and hospital discharge summaries.
-              </CardDescription>
-            </div>
-            <Button
-              size="sm"
-              variant="primary"
-              onClick={handleSimulateDocumentUpload}
-              isLoading={isProcessingDoc}
-              leftIcon={<Upload className="h-3.5 w-3.5" />}
-            >
-              Scan & Process Document
-            </Button>
-          </CardHeader>
-
-          <CardContent className="space-y-5 text-xs">
-            {/* Medication Safety / Interaction Notice */}
-            <div className="p-3.5 rounded-md bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 flex items-start gap-2.5">
-              <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+        <div className="space-y-5">
+          <Card>
+            <CardHeader>
               <div>
-                <span className="font-bold block">Medication Safety Review:</span>
-                <span>Active asthma medications (Budecort Inhaler) noted on prescription. Potential interaction warning flagged for beta-blocker contraindication.</span>
+                <CardTitle>Step 4: Upload or Scan Prior Medical Documents</CardTitle>
+                <CardDescription>
+                  Ingest physical paper prescriptions, lab panels, and discharge summaries into your medical timeline.
+                </CardDescription>
               </div>
-            </div>
+              <div className="flex items-center gap-1.5 bg-surface-alt p-1 rounded-md border border-border">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveDocTab('upload');
+                    stopCamera();
+                  }}
+                  className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors ${
+                    activeDocTab === 'upload' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-muted-foreground'
+                  }`}
+                >
+                  Upload File
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveDocTab('scanner');
+                    startCamera();
+                  }}
+                  className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors ${
+                    activeDocTab === 'scanner' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-muted-foreground'
+                  }`}
+                >
+                  Hospital Scanner / Camera
+                </button>
+              </div>
+            </CardHeader>
 
-            {/* Document Extraction List */}
-            <div className="space-y-4">
-              {documentsList.map((doc, idx) => (
-                <div key={doc.id} className="p-4 rounded-md border border-border bg-surface-alt space-y-3">
-                  <div className="flex items-center justify-between border-b border-border pb-2">
-                    <div className="flex items-center gap-2.5">
-                      <FileText className="h-4 w-4 text-primary" />
-                      <div>
-                        <span className="font-bold text-foreground text-sm block">{doc.documentTitle}</span>
-                        <span className="text-[11px] text-muted-foreground">{doc.issuingFacility} • {doc.documentDate}</span>
+            <CardContent className="space-y-5 text-xs">
+              {/* Document Meta Configuration */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-md bg-surface-alt border border-border">
+                <div>
+                  <label className="block font-semibold text-foreground mb-1">Document Category</label>
+                  <select
+                    value={docTypeSelection}
+                    onChange={(e) => setDocTypeSelection(e.target.value as any)}
+                    className="w-full h-9 px-3 rounded-md bg-surface border border-input text-foreground text-xs"
+                  >
+                    <option value="Prescription">Prescription (OPD Slip / Rx)</option>
+                    <option value="Lab Report">Laboratory Report (Biochemistry / Blood)</option>
+                    <option value="Discharge Summary">Hospital Discharge Summary</option>
+                    <option value="Imaging Report">Imaging Report (X-Ray / MRI / USG)</option>
+                    <option value="Consultation Note">Consultation Note</option>
+                    <option value="Other">Other Medical Record</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-foreground mb-1">Document Language (for OCR)</label>
+                  <select
+                    value={docLanguageSelection}
+                    onChange={(e) => setDocLanguageSelection(e.target.value)}
+                    className="w-full h-9 px-3 rounded-md bg-surface border border-input text-foreground text-xs"
+                  >
+                    <option value="English / Hindi">English / Hindi (Bilingual Rx)</option>
+                    <option value="English Only">English Only</option>
+                    <option value="Tamil">தமிழ் (Tamil)</option>
+                    <option value="Bengali">বাংলা (Bengali)</option>
+                    <option value="Telugu">తెలుగు (Telugu)</option>
+                    <option value="Marathi">मराठी (Marathi)</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Option A: File Upload UI */}
+              {activeDocTab === 'upload' && (
+                <div className="border-2 border-dashed border-border rounded-lg p-6 text-center space-y-3 bg-surface hover:bg-surface-alt/50 transition-colors">
+                  <div className="h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto">
+                    <Upload className="h-6 w-6" />
+                  </div>
+                  <div className="space-y-1">
+                    <span className="font-bold text-foreground block text-sm">
+                      Choose physical medical file to ingest
+                    </span>
+                    <p className="text-muted-foreground text-xs">
+                      Supports PDF, JPG, JPEG, PNG, or HEIC (Up to 10 MB per file)
+                    </p>
+                  </div>
+                  <div>
+                    <Button
+                      size="md"
+                      variant="primary"
+                      onClick={() => handleRunOcrIngestion('upload')}
+                      isLoading={isOcrProcessing}
+                      leftIcon={<ScanLine className="h-4 w-4" />}
+                    >
+                      {isOcrProcessing ? 'Extracting Medical Entities...' : 'Select File & Start OCR Ingestion'}
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Option B: Multi-Page Kiosk Scanner UI */}
+              {activeDocTab === 'scanner' && (
+                <div className="space-y-4">
+                  <div className="relative rounded-lg overflow-hidden border-2 border-primary/40 bg-black aspect-video max-h-72 flex items-center justify-center">
+                    {/* Live Camera Viewfinder or Fallback */}
+                    <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+
+                    {!isCameraActive && (
+                      <div className="absolute inset-0 bg-surface-alt flex flex-col items-center justify-center p-4 text-center space-y-2">
+                        <Camera className="h-10 w-10 text-muted-foreground" />
+                        <span className="font-bold text-foreground text-sm">
+                          Hospital Kiosk Flatbed / Camera Stand Ready
+                        </span>
+                        <p className="text-muted-foreground text-xs max-w-sm">
+                          {cameraError || 'Position the prescription or lab report squarely on the scanner tray.'}
+                        </p>
                       </div>
+                    )}
+
+                    {/* Overlay Frame Alignment Guide */}
+                    <div className="absolute inset-4 border border-dashed border-white/60 pointer-events-none rounded flex items-center justify-center">
+                      <span className="text-[11px] bg-black/60 text-white px-2.5 py-1 rounded">
+                        Align Paper Document Within Frame
+                      </span>
                     </div>
-                    <Badge variant="success" size="sm">
-                      AI/OCR Extracted — Verified
-                    </Badge>
                   </div>
 
-                  {/* Extracted Diagnoses */}
-                  {doc.diagnoses && doc.diagnoses.length > 0 && (
-                    <div>
-                      <span className="font-bold text-muted-foreground text-[11px] uppercase tracking-wider block mb-1">
-                        Extracted Diagnoses:
-                      </span>
-                      <div className="flex flex-wrap gap-1.5">
-                        {doc.diagnoses.map((d) => (
-                          <span key={d.id} className="px-2 py-0.5 rounded bg-surface border border-border text-foreground text-xs flex items-center gap-1.5">
-                            <span>{d.condition}</span>
-                            <span className="text-[10px] text-emerald-600 font-bold">({d.confidence}% match)</span>
-                          </span>
-                        ))}
-                      </div>
+                  {/* Scanner Actions Bar */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-md bg-surface-alt border border-border">
+                    <div className="flex items-center gap-2">
+                      <Button size="sm" variant="primary" onClick={handleCapturePage} leftIcon={<Camera className="h-3.5 w-3.5" />}>
+                        Capture Page ({scannedPages.length + 1})
+                      </Button>
+                      {scannedPages.length > 0 && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleRunOcrIngestion('scanner')}
+                          isLoading={isOcrProcessing}
+                          leftIcon={<Check className="h-3.5 w-3.5" />}
+                        >
+                          Finish & Process {scannedPages.length} Page(s)
+                        </Button>
+                      )}
                     </div>
-                  )}
 
-                  {/* Extracted Prescriptions */}
-                  {doc.medications && doc.medications.length > 0 && (
-                    <div>
-                      <span className="font-bold text-muted-foreground text-[11px] uppercase tracking-wider block mb-1">
-                        Extracted Medications & Dosages:
-                      </span>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {doc.medications.map((m) => (
-                          <div key={m.id} className="p-2 rounded bg-surface border border-border flex items-center justify-between text-xs">
-                            <div>
-                              <span className="font-semibold text-foreground block">{m.medicineName}</span>
-                              <span className="text-[11px] text-muted-foreground">{m.dosage} • {m.frequency} ({m.duration})</span>
-                            </div>
-                            <Badge variant="outline" size="sm">
-                              Confirm
-                            </Badge>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                    <span className="text-xs font-semibold text-muted-foreground">
+                      Scanned Pages: <strong className="text-foreground">{scannedPages.length}</strong>
+                    </span>
+                  </div>
 
-                  {/* Extracted Lab Investigations with High/Low flagging */}
-                  {doc.investigations && doc.investigations.length > 0 && (
-                    <div>
-                      <span className="font-bold text-muted-foreground text-[11px] uppercase tracking-wider block mb-1">
-                        Parsed Biomarkers & Reference Ranges:
+                  {/* Scanned Pages Strip */}
+                  {scannedPages.length > 0 && (
+                    <div className="space-y-2">
+                      <span className="font-bold text-foreground text-xs block">
+                        Captured Pages in this Document:
                       </span>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {doc.investigations.map((inv) => (
-                          <div key={inv.id} className="p-2 rounded bg-surface border border-border flex items-center justify-between text-xs">
-                            <div>
-                              <span className="font-semibold text-foreground block">{inv.testName}</span>
-                              <span className="text-[11px] text-muted-foreground">Ref: {inv.referenceRange}</span>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                        {scannedPages.map((pg) => (
+                          <div key={pg.pageNumber} className="p-2 rounded border border-border bg-surface space-y-1.5">
+                            <div className="aspect-[3/4] bg-surface-alt rounded overflow-hidden relative">
+                              <img
+                                src={pg.thumbnailUrl}
+                                alt={`Page ${pg.pageNumber}`}
+                                className="w-full h-full object-cover transition-transform"
+                                style={{ transform: `rotate(${pg.rotation}deg)` }}
+                              />
+                              <span className="absolute top-1 left-1 bg-black/70 text-white text-[10px] px-1.5 py-0.5 rounded font-mono font-bold">
+                                Pg {pg.pageNumber}
+                              </span>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <span className="font-bold font-mono text-foreground">{inv.resultValue} {inv.unit}</span>
-                              <Badge
-                                variant={inv.flag === 'low' ? 'danger' : inv.flag === 'high' ? 'warning' : 'success'}
-                                size="sm"
+                            <div className="flex justify-between items-center pt-1">
+                              <button
+                                type="button"
+                                onClick={() => handleRotatePage(pg.pageNumber)}
+                                className="text-[11px] text-primary hover:underline flex items-center gap-1"
                               >
-                                {inv.flag.toUpperCase()}
-                              </Badge>
+                                <RotateCw className="h-3 w-3" /> Rotate
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRemovePage(pg.pageNumber)}
+                                className="text-[11px] text-danger hover:underline flex items-center gap-1"
+                              >
+                                <Trash2 className="h-3 w-3" /> Remove
+                              </button>
                             </div>
                           </div>
                         ))}
@@ -1144,19 +1330,195 @@ export const ClinicalIntakePage: React.FC = () => {
                     </div>
                   )}
                 </div>
-              ))}
-            </div>
+              )}
 
-            <div className="flex justify-between items-center pt-3 border-t border-border">
-              <Button size="md" variant="outline" onClick={() => setStep(3)} leftIcon={<ArrowLeft className="h-4 w-4" />}>
-                Back: History
-              </Button>
-              <Button size="md" variant="primary" onClick={() => setStep(5)} rightIcon={<ArrowRight className="h-4 w-4" />}>
-                Next: Review Clinical Summary
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+              {/* Staged OCR Progressive Tracker */}
+              {isOcrProcessing && (
+                <div className="p-4 rounded-md border border-primary/40 bg-primary-muted/20 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-foreground text-sm flex items-center gap-2">
+                      <ScanLine className="h-4 w-4 text-primary animate-spin" />
+                      OCR Extraction Pipeline in Progress...
+                    </span>
+                    <span className="text-xs font-mono font-bold text-primary">
+                      Stage {ocrStage} of 6
+                    </span>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    {OCR_PROCESSING_STAGES.map((stg) => {
+                      const isComplete = ocrStage > stg.stage;
+                      const isCurrent = ocrStage === stg.stage;
+                      return (
+                        <div
+                          key={stg.stage}
+                          className={`flex items-center gap-2.5 text-xs py-1 px-2 rounded ${
+                            isCurrent
+                              ? 'bg-surface font-bold text-primary'
+                              : isComplete
+                              ? 'text-foreground opacity-80'
+                              : 'text-muted-foreground opacity-40'
+                          }`}
+                        >
+                          <span
+                            className={`h-4 w-4 rounded-full flex items-center justify-center text-[10px] font-mono ${
+                              isComplete
+                                ? 'bg-emerald-600 text-white'
+                                : isCurrent
+                                ? 'bg-primary text-white animate-pulse'
+                                : 'bg-surface-alt border border-border'
+                            }`}
+                          >
+                            {isComplete ? '✓' : stg.stage}
+                          </span>
+                          <span>{stg.label}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* OCR Review & Human Verification Strip */}
+              <div className="space-y-4 pt-2">
+                <div className="flex items-center justify-between border-b border-border pb-2">
+                  <span className="font-bold text-foreground text-sm">
+                    Digitized Documents & Extracted Findings ({documentsList.length})
+                  </span>
+                  <Badge variant="primary" size="sm">
+                    OCR Verified Draft
+                  </Badge>
+                </div>
+
+                {documentsList.map((doc) => (
+                  <div key={doc.id} className="p-4 rounded-md border border-border bg-surface-alt space-y-3.5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border pb-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <FileText className="h-4 w-4 text-primary shrink-0" />
+                        <div>
+                          <span className="font-bold text-foreground text-sm block">{doc.documentTitle}</span>
+                          <span className="text-[11px] text-muted-foreground">
+                            {doc.issuingFacility} • {doc.documentDate} • {doc.detectedLanguage}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {doc.isHandwritten && (
+                          <Badge variant="warning" size="sm">
+                            ✍️ Handwritten Document Detected
+                          </Badge>
+                        )}
+                        <Badge variant="success" size="sm">
+                          Verified
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Extracted Diagnoses */}
+                    {doc.diagnoses && doc.diagnoses.length > 0 && (
+                      <div>
+                        <span className="font-bold text-muted-foreground text-[11px] uppercase tracking-wider block mb-1">
+                          Extracted Diagnoses:
+                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          {doc.diagnoses.map((d) => (
+                            <div
+                              key={d.id}
+                              className="px-2.5 py-1 rounded bg-surface border border-border text-foreground text-xs flex items-center gap-2"
+                            >
+                              <span>{d.condition}</span>
+                              <Badge
+                                variant={
+                                  d.confidenceLevel === 'High confidence'
+                                    ? 'success'
+                                    : d.confidenceLevel === 'Review recommended'
+                                    ? 'warning'
+                                    : 'danger'
+                                }
+                                size="sm"
+                              >
+                                {d.confidenceLevel} ({d.confidenceScore}%)
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Extracted Medications */}
+                    {doc.medications && doc.medications.length > 0 && (
+                      <div>
+                        <span className="font-bold text-muted-foreground text-[11px] uppercase tracking-wider block mb-1">
+                          Extracted Medications:
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {doc.medications.map((m) => (
+                            <div
+                              key={m.id}
+                              className="p-2.5 rounded bg-surface border border-border flex items-center justify-between text-xs"
+                            >
+                              <div>
+                                <span className="font-semibold text-foreground block">{m.medicineName}</span>
+                                <span className="text-[11px] text-muted-foreground">
+                                  {m.dosage} • {m.frequency} ({m.duration})
+                                </span>
+                              </div>
+                              <Badge variant="outline" size="sm">
+                                {m.confidenceLevel}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Extracted Investigations with Low/Normal/High */}
+                    {doc.investigations && doc.investigations.length > 0 && (
+                      <div>
+                        <span className="font-bold text-muted-foreground text-[11px] uppercase tracking-wider block mb-1">
+                          Biomarkers & Diagnostic Values:
+                        </span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {doc.investigations.map((inv) => (
+                            <div
+                              key={inv.id}
+                              className="p-2.5 rounded bg-surface border border-border flex items-center justify-between text-xs"
+                            >
+                              <div>
+                                <span className="font-semibold text-foreground block">{inv.testName}</span>
+                                <span className="text-[11px] text-muted-foreground">Ref: {inv.referenceRange}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold font-mono text-foreground">
+                                  {inv.resultValue} {inv.unit}
+                                </span>
+                                <Badge
+                                  variant={inv.flag === 'low' ? 'danger' : inv.flag === 'high' ? 'warning' : 'success'}
+                                  size="sm"
+                                >
+                                  {inv.flag.toUpperCase()}
+                                </Badge>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex justify-between items-center pt-3 border-t border-border">
+                <Button size="md" variant="outline" onClick={() => setStep(3)} leftIcon={<ArrowLeft className="h-4 w-4" />}>
+                  Back: History
+                </Button>
+                <Button size="md" variant="primary" onClick={() => setStep(5)} rightIcon={<ArrowRight className="h-4 w-4" />}>
+                  Next: Review Clinical Summary
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       {/* ================= STEP 5: CLINICAL HISTORY SUMMARY ================= */}
@@ -1264,12 +1626,9 @@ export const ClinicalIntakePage: React.FC = () => {
                   size="sm"
                   variant="outline"
                   className="w-1/2"
-                  onClick={() => {
-                    setStep(1);
-                    showToast('Intake form reset for demonstration.', 'info');
-                  }}
+                  onClick={handleResetSession}
                 >
-                  Start New Intake
+                  Start New Patient
                 </Button>
               </div>
             </div>
