@@ -435,18 +435,18 @@ export const ClinicalIntakePage: React.FC = () => {
     ayush:
       intakeMode === 'ayush'
         ? {
-            prakriti: ayushPrakriti,
-            vikriti: ayushVikriti,
-            sara: 'Madhyama',
-            samhanana: 'Compact / Madhyama',
-            pramana: 'Standard (Pramana Yukta)',
-            satmya: ayushSatmya,
-            sattva: ayushSattva,
-            aharaShakti: ayushAgni,
-            vyayamaShakti: 'Madhyama',
-            vaya: `${patientAge} Years (Madhyama Vaya)`,
-            aharaVihara: ayushAharaVihara,
-          }
+          prakriti: ayushPrakriti,
+          vikriti: ayushVikriti,
+          sara: 'Madhyama',
+          samhanana: 'Compact / Madhyama',
+          pramana: 'Standard (Pramana Yukta)',
+          satmya: ayushSatmya,
+          sattva: ayushSattva,
+          aharaShakti: ayushAgni,
+          vyayamaShakti: 'Madhyama',
+          vaya: `${patientAge} Years (Madhyama Vaya)`,
+          aharaVihara: ayushAharaVihara,
+        }
         : undefined,
     isRedFlagTriggered: isRedFlag,
     redFlagDetails,
@@ -468,8 +468,8 @@ export const ClinicalIntakePage: React.FC = () => {
           d.documentType === 'Prescription'
             ? 'Prescriptions'
             : d.documentType === 'Lab Report'
-            ? 'Lab Reports'
-            : 'Discharge Summaries',
+              ? 'Lab Reports'
+              : 'Discharge Summaries',
         date: d.documentDate,
         hospitalName: d.issuingFacility,
         doctorName: 'Dr. R. Sharma',
@@ -533,14 +533,14 @@ export const ClinicalIntakePage: React.FC = () => {
                 step === 1
                   ? 'Please confirm your patient identity and select your preferred language.'
                   : step === 2
-                  ? 'Please review the digital consent explanation under the Digital Personal Data Protection Act 2023.'
-                  : step === 3
-                  ? 'Please choose or speak your chief medical complaint and answer the guided questions.'
-                  : step === 4
-                  ? 'Please scan or upload your prior paper prescriptions and lab reports.'
-                  : step === 5
-                  ? 'Please review your complete clinical summary before it is sent to the doctor.'
-                  : 'Your clinical intake is complete. Please proceed to the consultation room.'
+                    ? 'Please review the digital consent explanation under the Digital Personal Data Protection Act 2023.'
+                    : step === 3
+                      ? 'Please choose or speak your chief medical complaint and answer the guided questions.'
+                      : step === 4
+                        ? 'Please scan or upload your prior paper prescriptions and lab reports.'
+                        : step === 5
+                          ? 'Please review your complete clinical summary before it is sent to the doctor.'
+                          : 'Your clinical intake is complete. Please proceed to the consultation room.'
               )
             }
             leftIcon={isSpeaking ? <VolumeX className="h-3.5 w-3.5 text-danger" /> : <Volume2 className="h-3.5 w-3.5 text-primary" />}
@@ -572,22 +572,20 @@ export const ClinicalIntakePage: React.FC = () => {
             <button
               key={s.num}
               onClick={() => s.num < step && setStep(s.num as any)}
-              className={`flex items-center gap-2 font-medium whitespace-nowrap transition-colors ${
-                step === s.num
+              className={`flex items-center gap-2 font-medium whitespace-nowrap transition-colors ${step === s.num
                   ? 'text-primary font-bold'
                   : step > s.num
-                  ? 'text-foreground hover:text-primary cursor-pointer'
-                  : 'text-muted-foreground opacity-60'
-              }`}
+                    ? 'text-foreground hover:text-primary cursor-pointer'
+                    : 'text-muted-foreground opacity-60'
+                }`}
             >
               <span
-                className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-mono font-bold ${
-                  step === s.num
+                className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-mono font-bold ${step === s.num
                     ? 'bg-primary text-primary-foreground'
                     : step > s.num
-                    ? 'bg-primary/20 text-primary border border-primary/40'
-                    : 'bg-surface-alt border border-border text-muted-foreground'
-                }`}
+                      ? 'bg-primary/20 text-primary border border-primary/40'
+                      : 'bg-surface-alt border border-border text-muted-foreground'
+                  }`}
               >
                 {step > s.num ? '✓' : s.num}
               </span>
@@ -622,11 +620,10 @@ export const ClinicalIntakePage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleLoadPersona('aditya')}
-                  className={`p-2.5 rounded border text-left transition-colors ${
-                    patientName === 'Aditya Verma'
+                  className={`p-2.5 rounded border text-left transition-colors ${patientName === 'Aditya Verma'
                       ? 'bg-primary-muted border-primary/40 text-primary font-semibold'
                       : 'bg-surface border-border text-foreground hover:bg-surface-alt'
-                  }`}
+                    }`}
                 >
                   <span className="font-bold block">Aditya Verma (P-10001)</span>
                   <span className="text-[11px] text-muted-foreground">Acute Chest Pain / Cardiology</span>
@@ -634,11 +631,10 @@ export const ClinicalIntakePage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleLoadPersona('kamala')}
-                  className={`p-2.5 rounded border text-left transition-colors ${
-                    patientName === 'Kamala Devi'
+                  className={`p-2.5 rounded border text-left transition-colors ${patientName === 'Kamala Devi'
                       ? 'bg-primary-muted border-primary/40 text-primary font-semibold'
                       : 'bg-surface border-border text-foreground hover:bg-surface-alt'
-                  }`}
+                    }`}
                 >
                   <span className="font-bold block">Kamala Devi (Elderly Walk-In)</span>
                   <span className="text-[11px] text-muted-foreground">AYUSH Joint & Pariksha Intake</span>
@@ -646,11 +642,10 @@ export const ClinicalIntakePage: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleLoadPersona('ramesh')}
-                  className={`p-2.5 rounded border text-left transition-colors ${
-                    patientName === 'Ramesh Kumar'
+                  className={`p-2.5 rounded border text-left transition-colors ${patientName === 'Ramesh Kumar'
                       ? 'bg-primary-muted border-primary/40 text-primary font-semibold'
                       : 'bg-surface border-border text-foreground hover:bg-surface-alt'
-                  }`}
+                    }`}
                 >
                   <span className="font-bold block">Ramesh Kumar (First-Time)</span>
                   <span className="text-[11px] text-muted-foreground">General OPD Viral Fever</span>
@@ -852,22 +847,20 @@ export const ClinicalIntakePage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIntakeMode('allopathic')}
-                className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors ${
-                  intakeMode === 'allopathic'
+                className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors ${intakeMode === 'allopathic'
                     ? 'bg-primary text-primary-foreground shadow-xs'
                     : 'text-muted-foreground hover:text-foreground'
-                }`}
+                  }`}
               >
                 Allopathic Intake
               </button>
               <button
                 type="button"
                 onClick={() => setIntakeMode('ayush')}
-                className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors ${
-                  intakeMode === 'ayush'
+                className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors ${intakeMode === 'ayush'
                     ? 'bg-amber-700 text-white shadow-xs'
                     : 'text-muted-foreground hover:text-foreground'
-                }`}
+                  }`}
               >
                 AYUSH / Ayurveda
               </button>
@@ -925,11 +918,10 @@ export const ClinicalIntakePage: React.FC = () => {
                       setSelectedComplaintId(c.id);
                       setChiefComplaint(c.label);
                     }}
-                    className={`p-3 rounded-md border text-left transition-colors ${
-                      selectedComplaintId === c.id
+                    className={`p-3 rounded-md border text-left transition-colors ${selectedComplaintId === c.id
                         ? 'bg-primary-muted border-primary text-primary font-bold shadow-xs'
                         : 'bg-surface border-border text-foreground hover:bg-surface-alt'
-                    }`}
+                      }`}
                   >
                     <span className="font-semibold block">{c.label}</span>
                     <span className="text-[10px] text-muted-foreground">{c.hindi}</span>
@@ -998,11 +990,10 @@ export const ClinicalIntakePage: React.FC = () => {
                             key={opt}
                             type="button"
                             onClick={() => setAdaptiveAnswers({ ...adaptiveAnswers, [q.id]: opt })}
-                            className={`p-2.5 rounded border text-left transition-colors ${
-                              currentVal === opt
+                            className={`p-2.5 rounded border text-left transition-colors ${currentVal === opt
                                 ? 'bg-primary-muted border-primary text-primary font-bold shadow-xs'
                                 : 'bg-surface border-border text-foreground hover:bg-surface-alt'
-                            }`}
+                              }`}
                           >
                             {opt}
                           </button>
@@ -1026,11 +1017,10 @@ export const ClinicalIntakePage: React.FC = () => {
                                   setAdaptiveAnswers({ ...adaptiveAnswers, [q.id]: [...arr, opt] });
                                 }
                               }}
-                              className={`p-2.5 rounded border text-left transition-colors flex items-center justify-between ${
-                                isChecked
+                              className={`p-2.5 rounded border text-left transition-colors flex items-center justify-between ${isChecked
                                   ? 'bg-primary-muted border-primary text-primary font-bold shadow-xs'
                                   : 'bg-surface border-border text-foreground hover:bg-surface-alt'
-                              }`}
+                                }`}
                             >
                               <span>{opt}</span>
                               {isChecked && <Check className="h-3.5 w-3.5 text-primary" />}
@@ -1095,9 +1085,8 @@ export const ClinicalIntakePage: React.FC = () => {
                         return (
                           <label
                             key={sym.id}
-                            className={`flex items-center gap-2 p-1.5 rounded cursor-pointer transition-colors ${
-                              isChecked ? 'bg-primary-muted text-primary font-semibold' : 'hover:bg-surface'
-                            }`}
+                            className={`flex items-center gap-2 p-1.5 rounded cursor-pointer transition-colors ${isChecked ? 'bg-primary-muted text-primary font-semibold' : 'hover:bg-surface'
+                              }`}
                           >
                             <input
                               type="checkbox"
@@ -1152,9 +1141,8 @@ export const ClinicalIntakePage: React.FC = () => {
                     setActiveDocTab('upload');
                     stopCamera();
                   }}
-                  className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors ${
-                    activeDocTab === 'upload' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-muted-foreground'
-                  }`}
+                  className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors ${activeDocTab === 'upload' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-muted-foreground'
+                    }`}
                 >
                   Upload File
                 </button>
@@ -1164,9 +1152,8 @@ export const ClinicalIntakePage: React.FC = () => {
                     setActiveDocTab('scanner');
                     startCamera();
                   }}
-                  className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors ${
-                    activeDocTab === 'scanner' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-muted-foreground'
-                  }`}
+                  className={`px-3 py-1.5 rounded text-xs font-semibold transition-colors ${activeDocTab === 'scanner' ? 'bg-primary text-primary-foreground shadow-xs' : 'text-muted-foreground'
+                    }`}
                 >
                   Hospital Scanner / Camera
                 </button>
@@ -1352,22 +1339,20 @@ export const ClinicalIntakePage: React.FC = () => {
                       return (
                         <div
                           key={stg.stage}
-                          className={`flex items-center gap-2.5 text-xs py-1 px-2 rounded ${
-                            isCurrent
+                          className={`flex items-center gap-2.5 text-xs py-1 px-2 rounded ${isCurrent
                               ? 'bg-surface font-bold text-primary'
                               : isComplete
-                              ? 'text-foreground opacity-80'
-                              : 'text-muted-foreground opacity-40'
-                          }`}
+                                ? 'text-foreground opacity-80'
+                                : 'text-muted-foreground opacity-40'
+                            }`}
                         >
                           <span
-                            className={`h-4 w-4 rounded-full flex items-center justify-center text-[10px] font-mono ${
-                              isComplete
+                            className={`h-4 w-4 rounded-full flex items-center justify-center text-[10px] font-mono ${isComplete
                                 ? 'bg-emerald-600 text-white'
                                 : isCurrent
-                                ? 'bg-primary text-white animate-pulse'
-                                : 'bg-surface-alt border border-border'
-                            }`}
+                                  ? 'bg-primary text-white animate-pulse'
+                                  : 'bg-surface-alt border border-border'
+                              }`}
                           >
                             {isComplete ? '✓' : stg.stage}
                           </span>
@@ -1432,8 +1417,8 @@ export const ClinicalIntakePage: React.FC = () => {
                                   d.confidenceLevel === 'High confidence'
                                     ? 'success'
                                     : d.confidenceLevel === 'Review recommended'
-                                    ? 'warning'
-                                    : 'danger'
+                                      ? 'warning'
+                                      : 'danger'
                                 }
                                 size="sm"
                               >
