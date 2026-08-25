@@ -101,6 +101,10 @@ interface AppContextType {
     notes?: string
   ) => void;
 
+  // Clinical Intake Integration
+  clinicalIntakeSummary: any | null;
+  saveClinicalIntakeSummary: (summary: any) => void;
+
   // Notifications
   markNotificationRead: (id: string) => void;
   markAllNotificationsRead: () => void;
@@ -149,6 +153,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [emergencyProfile, setEmergencyProfile] = useState<EmergencyProfile>(StorageService.getEmergencyProfile);
   const [documents, setDocuments] = useState<HealthDocument[]>(StorageService.getDocuments);
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>(StorageService.getFamilyMembers);
+  const [clinicalIntakeSummary, setClinicalIntakeSummary] = useState<any | null>(() => {
+    const saved = localStorage.getItem('aarogyam_clinical_intake_summary');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  const saveClinicalIntakeSummary = (summary: any) => {
+    setClinicalIntakeSummary(summary);
+    localStorage.setItem('aarogyam_clinical_intake_summary', JSON.stringify(summary));
+  };
 
   // Helper sync to storage
   const updatePatient = (updated: Partial<Patient>) => {
@@ -806,6 +819,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         updateEmergencyProfile,
         triggerEmergencyAccess,
         logAudit,
+        clinicalIntakeSummary,
+        saveClinicalIntakeSummary,
         markNotificationRead,
         markAllNotificationsRead,
         resetDemoData,

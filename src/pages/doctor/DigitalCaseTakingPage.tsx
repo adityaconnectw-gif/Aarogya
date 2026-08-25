@@ -14,6 +14,8 @@ import {
   Printer,
   FileCheck2,
   ShieldCheck,
+  FileText,
+  Check,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
@@ -24,28 +26,65 @@ import { useAuth } from '../../context/AuthContext';
 import { useToast } from '../../components/common/Toast';
 import { PrescriptionItem, ConditionSeverity } from '../../types';
 import { formatDate } from '../../utils/formatters';
+import { generateClinicalHistorySummary } from '../../services/clinicalIntakeService';
 
 export const DigitalCaseTakingPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { patient, completeConsultationWorkflow } = useApp();
+  const { patient, completeConsultationWorkflow, clinicalIntakeSummary } = useApp();
   const { showToast } = useToast();
 
   const [step, setStep] = useState<number>(1);
   const [completedResult, setCompletedResult] = useState<any | null>(null);
+  const [showIntakeDetails, setShowIntakeDetails] = useState<boolean>(false);
 
   // STEP 1: Chief Complaint
-  const [chiefComplaint, setChiefComplaint] = useState('Acute fever with productive cough and mild sore throat');
+  const [chiefComplaint, setChiefComplaint] = useState(
+    clinicalIntakeSummary?.chiefComplaint || 'Acute fever with productive cough and mild sore throat'
+  );
   const [duration, setDuration] = useState('3 days');
   const [complaintSeverity, setComplaintSeverity] = useState<'Mild' | 'Moderate' | 'Severe'>('Moderate');
-  const [additionalNotes, setAdditionalNotes] = useState('Worse in the evenings. Patient has taken home fluids.');
+  const [additionalNotes, setAdditionalNotes] = useState(
+    clinicalIntakeSummary?.hpi?.patientNarrative || 'Worse in the evenings. Patient has taken home fluids.'
+  );
 
   // STEP 2: History
-  const [presentIllness, setPresentIllness] = useState('Patient reports sudden onset fever up to 101 F with dry cough progressing to throat irritation.');
-  const [previousIllness, setPreviousIllness] = useState('Bronchial asthma diagnosed in 2024 (moderate, controlled under Budecort).');
-  const [familyHistory, setFamilyHistory] = useState('Paternal history of hypertension. No diabetes.');
-  const [surgicalHistory, setSurgicalHistory] = useState('No prior surgeries.');
-  const [currentMedication, setCurrentMedication] = useState('Budecort Inhaler 200mcg as needed.');
+  const [presentIllness, setPresentIllness] = useState(
+    clinicalIntakeSummary
+      ? `Onset: ${clinicalIntakeSummary.hpi.onset}. Site: ${clinicalIntakeSummary.hpi.site}. Character: ${clinicalIntakeSummary.hpi.character}. Radiation: ${clinicalIntakeSummary.hpi.radiation}. Aggravating: ${clinicalIntakeSummary.hpi.aggravating}. Relieving: ${clinicalIntakeSummary.hpi.relieving}.`
+      : 'Patient reports sudden onset fever up to 101 F with dry cough progressing to throat irritation.'
+  );
+  const [previousIllness, setPreviousIllness] = useState(
+    clinicalIntakeSummary?.pastMedicalHistory?.join(', ') || 'Bronchial asthma diagnosed in 2024 (moderate, controlled under Budecort).'
+  );
+  const [familyHistory, setFamilyHistory] = useState(
+    clinicalIntakeSummary?.familyHistory?.join(', ') || 'Paternal history of hypertension. No diabetes.'
+  );
+  const [surgicalHistory, setSurgicalHistory] = useState(
+    clinicalIntakeSummary?.pastSurgicalHistory?.join(', ') || 'No prior surgeries.'
+  );
+  const [currentMedication, setCurrentMedication] = useState(
+    clinicalIntakeSummary?.currentMedications?.join('; ') || 'Budecort Inhaler 200mcg as needed.'
+  );
+
+  const handleImportIntakeDraft = () => {
+    if (clinicalIntakeSummary) {
+      setChiefComplaint(clinicalIntakeSummary.chiefComplaint);
+      setPresentIllness(
+        `SOCRATES Breakdown: Onset: ${clinicalIntakeSummary.hpi.onset}. Site: ${clinicalIntakeSummary.hpi.site}. Character: ${clinicalIntakeSummary.hpi.character}. Radiation: ${clinicalIntakeSummary.hpi.radiation}. Aggravating: ${clinicalIntakeSummary.hpi.aggravating}. Relieving: ${clinicalIntakeSummary.hpi.relieving}. Patient Note: ${clinicalIntakeSummary.hpi.patientNarrative || 'None'}`
+      );
+      if (clinicalIntakeSummary.pastMedicalHistory?.length > 0) {
+        setPreviousIllness(clinicalIntakeSummary.pastMedicalHistory.join(', '));
+      }
+      if (clinicalIntakeSummary.currentMedications?.length > 0) {
+        setCurrentMedication(clinicalIntakeSummary.currentMedications.join('; '));
+      }
+      if (clinicalIntakeSummary.familyHistory?.length > 0) {
+        setFamilyHistory(clinicalIntakeSummary.familyHistory.join(', '));
+      }
+      showToast('Imported pre-consultation clinical intake data into consultation draft.', 'success');
+    }
+  };
 
   // STEP 3: Examination Vitals
   const [temperature, setTemperature] = useState('100.4 °F');
@@ -191,6 +230,60 @@ export const DigitalCaseTakingPage: React.FC = () => {
             View Patient History
           </Button>
         </Link>
+      </div>
+
+      {/* Pre-Consultation Clinical Intake Available Banner */}
+      <div className="p-4 rounded-md border border-primary/30 bg-primary-muted/20 space-y-2 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-start gap-2.5">
+            <FileText className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-xs sm:text-sm text-foreground">
+                  Pre-Consultation Clinical Intake Available (Completed at Kiosk)
+                </span>
+                <Badge variant="primary" size="sm">
+                  Draft for Review
+                </Badge>
+                {clinicalIntakeSummary?.isRedFlagTriggered && (
+                  <Badge variant="danger" size="sm">
+                    🚨 Red-Flag Triage
+                  </Badge>
+                )}
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                AI-generated draft — Physician verification required. Chief Complaint: <strong>{clinicalIntakeSummary?.chiefComplaint || 'Acute Chest Discomfort'}</strong>
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowIntakeDetails(!showIntakeDetails)}
+            >
+              {showIntakeDetails ? 'Hide Details' : 'View Full Summary'}
+            </Button>
+            <Button
+              size="sm"
+              variant="primary"
+              onClick={handleImportIntakeDraft}
+              leftIcon={<Check className="h-3.5 w-3.5" />}
+            >
+              Import into Draft
+            </Button>
+          </div>
+        </div>
+
+        {/* Collapsible Full Clinical Summary */}
+        {showIntakeDetails && (
+          <div className="mt-3 p-3 rounded bg-surface border border-border text-xs font-mono whitespace-pre-wrap max-h-64 overflow-y-auto">
+            {clinicalIntakeSummary
+              ? generateClinicalHistorySummary(clinicalIntakeSummary)
+              : 'Chief Complaint: Chest Pain & Discomfort (Severity 8/10)\nSite: Substernal / Central Chest | Onset: Sudden acute onset (< 2 hours)\nRadiation: Radiates to Left Arm & Jaw\nAllergies: Penicillin / Amoxicillin (Severe allergy)'}
+          </div>
+        )}
       </div>
 
       {/* 6-Step Indicator Ribbon (when not finished) */}

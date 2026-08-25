@@ -17,6 +17,7 @@ import { HelpPage } from '../pages/public/HelpPage';
 
 // Patient Pages
 import { PatientDashboard } from '../pages/patient/PatientDashboard';
+import { ClinicalIntakePage } from '../pages/patient/ClinicalIntakePage';
 import { HealthTimelinePage } from '../pages/patient/HealthTimelinePage';
 import { MedicalRecordsPage } from '../pages/patient/MedicalRecordsPage';
 import { MedicationsPage } from '../pages/patient/MedicationsPage';
@@ -69,10 +70,14 @@ export const AppRoutes: React.FC = () => {
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       </Route>
 
+      {/* Standalone Kiosk Terminal Route */}
+      <Route path="/kiosk" element={<ClinicalIntakePage />} />
+
       {/* Patient Portal */}
       <Route path="/patient" element={<DashboardLayout />}>
         <Route index element={<Navigate to="/patient/dashboard" replace />} />
         <Route path="dashboard" element={<PatientDashboard />} />
+        <Route path="intake" element={<ClinicalIntakePage />} />
         <Route path="timeline" element={<HealthTimelinePage />} />
         <Route path="records" element={<MedicalRecordsPage />} />
         <Route path="medications" element={<MedicationsPage />} />

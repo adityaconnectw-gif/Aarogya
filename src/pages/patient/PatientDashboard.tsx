@@ -16,6 +16,7 @@ import {
   FileText,
   Heart,
   ChevronRight,
+  Stethoscope,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/common/Card';
 import { Button } from '../../components/common/Button';
@@ -64,8 +65,13 @@ export const PatientDashboard: React.FC = () => {
 
         {/* Quick actions top pill */}
         <div className="flex flex-wrap items-center gap-2">
+          <Link to="/patient/intake">
+            <Button size="sm" variant="primary" leftIcon={<Stethoscope className="h-3.5 w-3.5" />}>
+              Start Clinical Intake
+            </Button>
+          </Link>
           <Link to="/patient/book-appointment">
-            <Button size="sm" variant="primary" leftIcon={<UserPlus className="h-3.5 w-3.5" />}>
+            <Button size="sm" variant="outline" leftIcon={<UserPlus className="h-3.5 w-3.5" />}>
               Book Appointment
             </Button>
           </Link>
@@ -75,6 +81,33 @@ export const PatientDashboard: React.FC = () => {
             </Button>
           </Link>
         </div>
+      </div>
+
+      {/* Clinical Intake Fast-Track Banner */}
+      <div className="p-4 rounded-md border border-primary/30 bg-primary-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-card">
+        <div className="flex items-start gap-3">
+          <div className="h-10 w-10 rounded-md bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
+            <Stethoscope className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-sm sm:text-base font-bold text-foreground">
+                Self-Service Clinical Intake & Document Digitization
+              </h2>
+              <Badge variant="primary" size="sm">
+                OPD Fast-Track
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Pre-record your symptoms via voice/tap and digitize prior prescriptions before entering the doctor's consultation room.
+            </p>
+          </div>
+        </div>
+        <Link to="/patient/intake" className="shrink-0">
+          <Button size="sm" variant="primary" rightIcon={<ArrowRight className="h-3.5 w-3.5" />}>
+            Start Intake Now
+          </Button>
+        </Link>
       </div>
 
       {/* Row of 5 Institutional Stat Cards */}

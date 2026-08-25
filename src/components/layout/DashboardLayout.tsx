@@ -57,6 +57,7 @@ export const DashboardLayout: React.FC = () => {
 
   const patientNav: NavItem[] = [
     { label: 'Overview', path: '/patient/dashboard', icon: LayoutDashboard },
+    { label: 'Clinical Intake', path: '/patient/intake', icon: Stethoscope, highlight: true },
     { label: 'Health Timeline', path: '/patient/timeline', icon: Clock },
     { label: 'Medical Records', path: '/patient/records', icon: FileText },
     { label: 'Medications', path: '/patient/medications', icon: Pill },

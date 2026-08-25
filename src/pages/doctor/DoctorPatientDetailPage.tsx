@@ -120,15 +120,32 @@ export const DoctorPatientDetailPage: React.FC = () => {
             <div className="flex items-center gap-2">
               <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
               <span>
-                <strong className="font-bold">Access Status: Authorized.</strong> Valid consent granted until: <span className="font-mono font-semibold">24 Aug 2026, 10:31 PM</span>
+                <strong className="font-bold">Access Status: Authorized.</strong> Valid consent granted under ABDM DPDP Act 2023.
               </span>
             </div>
-            <button
-              onClick={() => setIsRequestAccessModalOpen(true)}
-              className="text-[11px] text-emerald-800 dark:text-emerald-300 font-semibold underline hover:no-underline"
-            >
-              Request Extended Permissions
-            </button>
+            <Link to="/doctor/case/new" className="text-[11px] text-emerald-800 dark:text-emerald-300 font-bold underline">
+              Open Consultation Desk →
+            </Link>
+          </div>
+
+          {/* Pre-Consultation Clinical Intake Notice */}
+          <div className="p-3.5 rounded-md bg-primary-muted/20 border border-primary/30 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-start gap-2.5">
+              <FileText className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold text-foreground block">
+                  Pre-Consultation Clinical Intake Completed (AI Draft Ready)
+                </span>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Patient completed guided history and prior prescription scan at the OPD Kiosk. Ready for clinician review & confirmation.
+                </p>
+              </div>
+            </div>
+            <Link to="/doctor/case/new">
+              <Button size="sm" variant="primary" leftIcon={<Stethoscope className="h-3.5 w-3.5" />}>
+                Review & Confirm Draft
+              </Button>
+            </Link>
           </div>
 
           {/* Critical Clinical Alerts Strip */}
